@@ -7,13 +7,16 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/akimdev15/melongo/internal/database"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
 	"github.com/joho/godotenv"
-	"github.com/pressly/goose/v3/database"
+
+	_ "github.com/lib/pq"
 )
 
 type apiConfig struct {
+	DB *database.Queries
 }
 
 func main() {
@@ -35,7 +38,9 @@ func main() {
 	}
 
 	db := database.New(conn)
-	// TODO - add the config
+	apiCfg := apiConfig{
+		DB: db,
+	}
 
 	// TODO - run the scraper here
 
@@ -51,11 +56,21 @@ func main() {
 	}))
 
 	// TODO - create new router and add them here
+	v1Router := chi.NewRouter()
+	v1Router.Get("/healthz", apiCfg.handlerReadiness)
+
+	v1Router.Get("/users", apiCfg.middlewareAuth(apiCfg.handleGetUser))
+	v1Router.Post("/users", apiCfg.handlerCreateUser)
+
+	router.Mount("/v1", v1Router)
 
 	srv := &http.Server{
 		Handler: router,
 		Addr:    ":" + portStr,
 	}
+
+	apiCfg.handleDailyMusicScrape()
+
 	fmt.Println("Server starting on the PORT: ", portStr)
 	err = srv.ListenAndServe()
 	if err != nil {
