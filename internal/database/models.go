@@ -10,11 +10,18 @@ import (
 	"github.com/google/uuid"
 )
 
+type Genre struct {
+	ID   int32
+	Name string
+	Code string
+}
+
 type Music struct {
 	ID        uuid.UUID
 	Name      string
 	Artist    string
 	CreatedAt time.Time
+	Genre     int32
 }
 
 type User struct {

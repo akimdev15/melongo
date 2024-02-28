@@ -3,7 +3,7 @@ module github.com/akimdev15/melongo
 go 1.21.4
 
 require (
-	github.com/akimdev15/mscraper v0.0.0-20240220171645-d2267d4eb9a4
+	github.com/akimdev15/mscraper v0.0.0-20240227041734-f2e7a2abd14d
 	github.com/go-chi/chi v1.5.5
 	github.com/go-chi/cors v1.2.1
 	github.com/google/uuid v1.6.0
@@ -12,7 +12,7 @@ require (
 )
 
 require (
-	github.com/PuerkitoBio/goquery v1.8.1 // indirect
+	github.com/PuerkitoBio/goquery v1.9.0 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/antchfx/htmlquery v1.3.0 // indirect
 	github.com/antchfx/xmlquery v1.3.18 // indirect

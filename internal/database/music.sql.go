@@ -13,9 +13,9 @@ import (
 )
 
 const createMusic = `-- name: CreateMusic :one
-INSERT INTO music (id, name, artist, created_at)
-VALUES ($1, $2, $3, $4)
-RETURNING id, name, artist, created_at
+INSERT INTO music (id, name, artist, created_at, genre)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, name, artist, created_at, genre
 `
 
 type CreateMusicParams struct {
@@ -23,6 +23,7 @@ type CreateMusicParams struct {
 	Name      string
 	Artist    string
 	CreatedAt time.Time
+	Genre     int32
 }
 
 func (q *Queries) CreateMusic(ctx context.Context, arg CreateMusicParams) (Music, error) {
@@ -31,6 +32,7 @@ func (q *Queries) CreateMusic(ctx context.Context, arg CreateMusicParams) (Music
 		arg.Name,
 		arg.Artist,
 		arg.CreatedAt,
+		arg.Genre,
 	)
 	var i Music
 	err := row.Scan(
@@ -38,6 +40,95 @@ func (q *Queries) CreateMusic(ctx context.Context, arg CreateMusicParams) (Music
 		&i.Name,
 		&i.Artist,
 		&i.CreatedAt,
+		&i.Genre,
+	)
+	return i, err
+}
+
+const getMusicByArtist = `-- name: GetMusicByArtist :many
+SELECT id, name, artist, created_at, genre FROM music WHERE artist = $1
+`
+
+func (q *Queries) GetMusicByArtist(ctx context.Context, artist string) ([]Music, error) {
+	rows, err := q.db.QueryContext(ctx, getMusicByArtist, artist)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Music
+	for rows.Next() {
+		var i Music
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Artist,
+			&i.CreatedAt,
+			&i.Genre,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getMusicByTitle = `-- name: GetMusicByTitle :many
+SELECT id, name, artist, created_at, genre FROM music WHERE name = $1
+`
+
+func (q *Queries) GetMusicByTitle(ctx context.Context, name string) ([]Music, error) {
+	rows, err := q.db.QueryContext(ctx, getMusicByTitle, name)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Music
+	for rows.Next() {
+		var i Music
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Artist,
+			&i.CreatedAt,
+			&i.Genre,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getMusicByTitleAndArtist = `-- name: GetMusicByTitleAndArtist :one
+SELECT id, name, artist, created_at, genre FROM music WHERE name = $1 and artist = $2
+`
+
+type GetMusicByTitleAndArtistParams struct {
+	Name   string
+	Artist string
+}
+
+func (q *Queries) GetMusicByTitleAndArtist(ctx context.Context, arg GetMusicByTitleAndArtistParams) (Music, error) {
+	row := q.db.QueryRowContext(ctx, getMusicByTitleAndArtist, arg.Name, arg.Artist)
+	var i Music
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Artist,
+		&i.CreatedAt,
+		&i.Genre,
 	)
 	return i, err
 }

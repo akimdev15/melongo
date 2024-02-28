@@ -22,6 +22,12 @@ type Music struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type Genre struct {
+	ID   int32  `json:"id"`
+	Name string `json:"name"`
+	Code string `json:"code"`
+}
+
 func databaseUserToUser(dbUser database.User) User {
 	return User{
 		ID:        dbUser.ID,
@@ -39,4 +45,28 @@ func databaseMusicToMusic(dbMusic database.Music) Music {
 		Artist:    dbMusic.Artist,
 		CreatedAt: dbMusic.CreatedAt,
 	}
+}
+
+func databaseMusicsToMusics(dbMusics []database.Music) []Music {
+	musics := []Music{}
+	for _, dbMusic := range dbMusics {
+		musics = append(musics, databaseMusicToMusic(dbMusic))
+	}
+	return musics
+}
+
+func databaseGenreToGenre(dbGenre database.Genre) Genre {
+	return Genre{
+		ID:   dbGenre.ID,
+		Name: dbGenre.Name,
+		Code: dbGenre.Code,
+	}
+}
+
+func databaseGenresToGenres(dbGenres []database.Genre) []Genre {
+	genres := []Genre{}
+	for _, dbGenre := range dbGenres {
+		genres = append(genres, databaseGenreToGenre(dbGenre))
+	}
+	return genres
 }
