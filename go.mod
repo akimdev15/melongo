@@ -1,6 +1,6 @@
 module github.com/akimdev15/melongo
 
-go 1.21.4
+go 1.22.1
 
 require (
 	github.com/akimdev15/mscraper v0.0.0-20240227041734-f2e7a2abd14d

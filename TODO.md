@@ -1,8 +1,7 @@
 ## TODO
 
-- Make melon scrapper a separate repo/library so that I can use it my adding the module. Also create a REST API so that it can be used from different services as well.
-
-- For microservice, create org in github to manage all repos
+- [ ] Work on the playlist
+- [ ] Get all current playlists from spotify and analyze music from the playlist and create a playlist based on it
 
 ## Commands
 
@@ -12,3 +11,4 @@
     Goose Commands
     	- setup sqlc.yaml file
     	- inside the sql/schema directory, run: goose postgres postgres://postgres:@localhost:5432/melongo up
+

@@ -24,6 +24,17 @@ type Music struct {
 	Genre     int32
 }
 
+type Playlist struct {
+	ID     int32
+	Name   string
+	UserID uuid.UUID
+}
+
+type PlaylistSong struct {
+	PlaylistID int32
+	MusicID    uuid.UUID
+}
+
 type User struct {
 	ID        uuid.UUID
 	CreatedAt time.Time

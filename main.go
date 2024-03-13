@@ -42,8 +42,6 @@ func main() {
 		DB: db,
 	}
 
-	// TODO - run the scraper here
-
 	router := chi.NewRouter()
 	// adding cors
 	router.Use(cors.Handler(cors.Options{

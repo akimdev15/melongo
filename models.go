@@ -28,6 +28,13 @@ type Genre struct {
 	Code string `json:"code"`
 }
 
+type Playlist struct {
+	ID      int32     `json:"id"`
+	Name    string    `json:"name"`
+	UserId  uuid.UUID `json:"user_id"`
+	MusicId uuid.UUID `json:"music_id"`
+}
+
 func databaseUserToUser(dbUser database.User) User {
 	return User{
 		ID:        dbUser.ID,
@@ -69,4 +76,20 @@ func databaseGenresToGenres(dbGenres []database.Genre) []Genre {
 		genres = append(genres, databaseGenreToGenre(dbGenre))
 	}
 	return genres
+}
+
+func databasePlaylistToPlaylist(dbPlaylist database.Playlist) Playlist {
+	return Playlist{
+		ID:     dbPlaylist.ID,
+		Name:   dbPlaylist.Name,
+		UserId: dbPlaylist.UserID,
+	}
+}
+
+func databasePlaylistsToPlaylists(dbPlaylists []database.Playlist) []Playlist {
+	playlists := []Playlist{}
+	for _, dbPlaylist := range dbPlaylists {
+		playlists = append(playlists, databasePlaylistToPlaylist(dbPlaylist))
+	}
+	return playlists
 }
