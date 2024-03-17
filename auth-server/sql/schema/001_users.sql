@@ -5,8 +5,8 @@ CREATE TABLE users(
   created_at TIMESTAMP NOT NULL,
   updated_at TIMESTAMP NOT NULL,
   name TEXT NOT NULL,
-    user_id TEXT NOT NULL UNIQUE,
-    email TEXT NOT NULL
+  user_id TEXT NOT NULL UNIQUE,
+  email TEXT NOT NULL
 );
 
 -- +goose Down
