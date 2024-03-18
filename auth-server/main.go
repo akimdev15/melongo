@@ -31,6 +31,8 @@ type apiConfig struct {
 	DB *database.Queries
 }
 
+const PORT = ":8081"
+
 func main() {
 	// Step 1: Get client info
 	err := godotenv.Load("config.env")
@@ -56,16 +58,21 @@ func main() {
 
 	clientID = os.Getenv("ClientID")
 	clientSecret = os.Getenv("ClientSecret")
+	if clientID == "" || clientSecret == "" {
+		log.Fatal("")
+	}
 
-	// Step 2: Redirect User to Spotify Authorization Page
+	// Redirect User to Spotify Authorization Page
 	http.HandleFunc("GET /authorize", handleRedirect)
 
-	// Step 3: Handle Authorization Response
+	// Handle Authorization Response
 	http.HandleFunc("GET /callback", apiCfg.handleAuthorizationResponse)
 
+	go apiCfg.grpcListen()
+
 	// Start server
-	fmt.Println("Server listening on port 8080")
-	err = http.ListenAndServe(":8080", nil)
+	fmt.Println("Server listening on port ", PORT)
+	err = http.ListenAndServe(PORT, nil)
 	if err != nil {
 		log.Fatalf("Error starting the server %v", err)
 		return

@@ -1,7 +1,9 @@
 ## TODO
-
-- [ ] Work on the playlist
-- [ ] Get all current playlists from spotify and analyze music from the playlist and create a playlist based on it
+- Note on Auth Flow: 
+	Just for now, using a manually generated api_key when user is created in the database. This is what 
+	is being sent to the client side and client needs to include this with the subsequent requests.
+	When the request is made, it will direct to the auth-server and get the associated token for spotify. 
+	Need to check if the accessToken is valid and if not, need to request a refreshToken. 
 
 ## Commands
 
