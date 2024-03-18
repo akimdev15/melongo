@@ -13,14 +13,10 @@ import (
 	_ "github.com/lib/pq"
 )
 
-const (
-	RedirectURI = "http://localhost:8080/callback"
-	Scopes      = "user-read-email user-read-private playlist-modify-public playlist-modify-private playlist-read-collaborative playlist-read-private"
-)
-
 var (
 	clientID     string
 	clientSecret string
+	RedirectURI  string
 )
 
 type TokenResponse struct {
@@ -58,19 +54,15 @@ func main() {
 
 	clientID = os.Getenv("ClientID")
 	clientSecret = os.Getenv("ClientSecret")
-	if clientID == "" || clientSecret == "" {
+	RedirectURI = os.Getenv("RedirectURI")
+	if clientID == "" || clientSecret == "" || RedirectURI == "" {
 		log.Fatal("")
 	}
 
-	// Redirect User to Spotify Authorization Page
-	http.HandleFunc("GET /authorize", handleRedirect)
-
-	// Handle Authorization Response
-	http.HandleFunc("GET /callback", apiCfg.handleAuthorizationResponse)
-
+	// Start gRPC server
 	go apiCfg.grpcListen()
 
-	// Start server
+	// Start http server
 	fmt.Println("Server listening on port ", PORT)
 	err = http.ListenAndServe(PORT, nil)
 	if err != nil {

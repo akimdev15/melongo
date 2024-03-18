@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"google.golang.org/grpc"
 	"io"
 	"log"
 	"net"
@@ -16,7 +17,6 @@ import (
 	"github.com/akimdev15/melongo/auth-server/auth"
 	"github.com/akimdev15/melongo/auth-server/internal/database"
 	"github.com/google/uuid"
-	"google.golang.org/grpc"
 )
 
 type AuthServer struct {
@@ -25,6 +25,20 @@ type AuthServer struct {
 }
 
 const gRPCPORT = "50001"
+
+func (app *apiConfig) grpcListen() {
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", gRPCPORT))
+	if err != nil {
+		log.Fatalf("Failed to listen for grpc %v", err)
+	}
+
+	grpcServer := grpc.NewServer()
+	auth.RegisterAuthServiceServer(grpcServer, &AuthServer{DB: app.DB})
+	log.Printf("gRPC Server started on port %s\n", gRPCPORT)
+	if err = grpcServer.Serve(lis); err != nil {
+		log.Fatalf("Failed to listen for grpc %v", err)
+	}
+}
 
 func (authServer *AuthServer) AuthorizeUser(ctx context.Context, req *auth.AuthCallbackRequest) (*auth.AuthCallbackResponse, error) {
 	code := req.GetCode()
@@ -59,20 +73,6 @@ func (authServer *AuthServer) AuthorizeUser(ctx context.Context, req *auth.AuthC
 	}
 
 	return res, nil
-}
-
-func (app *apiConfig) grpcListen() {
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", gRPCPORT))
-	if err != nil {
-		log.Fatal("Failed to listen for grpc %v", err)
-	}
-
-	grpcServer := grpc.NewServer()
-	auth.RegisterAuthServiceServer(grpcServer, &AuthServer{DB: app.DB})
-	log.Printf("gRPC Server started on port %s\n", gRPCPORT)
-	if err := grpcServer.Serve(lis); err != nil {
-		log.Fatalf("Failed to listen for grpc %v", err)
-	}
 }
 
 func exchangeCodeForToken(ctx context.Context, code string) (*TokenResponse, error) {
@@ -153,7 +153,7 @@ func createUserParams(accessToken string) (*database.CreateUserParams, error) {
 	err = json.Unmarshal(body, &userInfoResponse)
 
 	if err != nil {
-		fmt.Println("Error parsing JSON %s", err)
+		fmt.Printf("Error parsing JSON %s\n", err)
 		return nil, err
 	}
 

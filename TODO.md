@@ -4,6 +4,8 @@
 	is being sent to the client side and client needs to include this with the subsequent requests.
 	When the request is made, it will direct to the auth-server and get the associated token for spotify. 
 	Need to check if the accessToken is valid and if not, need to request a refreshToken. 
+- TODO next: Need to map user to token and save it to the database. Also handle the case where when user access through /callabck, 
+	only save the user if they don't exist. Otherwise, just get their api key and update the valid token
 
 ## Commands
 
