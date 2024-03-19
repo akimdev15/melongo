@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"google.golang.org/grpc"
 	"io"
 	"log"
 	"net"
@@ -14,14 +14,22 @@ import (
 	"strings"
 	"time"
 
+	"google.golang.org/grpc"
+
 	"github.com/akimdev15/melongo/auth-server/auth"
 	"github.com/akimdev15/melongo/auth-server/internal/database"
-	"github.com/google/uuid"
 )
 
 type AuthServer struct {
 	auth.UnimplementedAuthServiceServer
 	DB *database.Queries
+}
+
+// Parse JSON response received from spotify
+type UserInfoResponse struct {
+	UserID      string `json:"id"`
+	Email       string `json:"email"`
+	DisplayName string `json:"display_name"`
 }
 
 const gRPCPORT = "50001"
@@ -42,6 +50,7 @@ func (app *apiConfig) grpcListen() {
 
 func (authServer *AuthServer) AuthorizeUser(ctx context.Context, req *auth.AuthCallbackRequest) (*auth.AuthCallbackResponse, error) {
 	code := req.GetCode()
+	fmt.Println("Received gRPC call from broker-service")
 
 	token, err := exchangeCodeForToken(ctx, code)
 	if err != nil {
@@ -50,26 +59,32 @@ func (authServer *AuthServer) AuthorizeUser(ctx context.Context, req *auth.AuthC
 	}
 
 	// TODO Step 2: Make request to get user's info and create user
-	userParams, err := createUserParams(token.AccessToken)
+	userInfoResponse, err := getUserFromSpotify(token.AccessToken)
 	if err != nil {
 		// TODO - need to handle error
-		fmt.Printf("Failed to create user parameter %v\n", err)
+		fmt.Println("Failed to get userResponse.")
 	}
+	fmt.Printf("UserInfoResponse: %v\n", userInfoResponse)
 
-	// Save to the database
-	dbUser, err := authServer.DB.CreateUser(ctx, *userParams)
-	if err != nil {
-		// TODO - need to handle error here
-		fmt.Printf("Error creating the user %v.\n", dbUser)
+	// Check if user already exists
+	savedUser, err := authServer.DB.GetUserById(ctx, userInfoResponse.UserID)
+	fmt.Printf("Existing user: %v", savedUser)
+	fmt.Println("Error: ", err)
+	if err == sql.ErrNoRows {
+		savedUser, err = authServer.createAndSaveUser(ctx, userInfoResponse)
+		if err != nil {
+			// TODO - need to handle error
+			fmt.Printf("Failed to create user. err: %v\n", err)
+			return nil, err
+		}
+	} else if err != nil {
+		fmt.Printf("Error checking for existing user. err: %v\n", err)
+		return nil, err
 	}
-
-	user := databaseUserToUser(dbUser)
-
-	fmt.Printf("Successfully saved user to the database: %v\n", user)
 
 	res := &auth.AuthCallbackResponse{
-		ApiKey: user.APIKey,
-		Name:   user.Name,
+		ApiKey: savedUser.ApiKey,
+		Name:   savedUser.Name,
 	}
 
 	return res, nil
@@ -118,14 +133,13 @@ func exchangeCodeForToken(ctx context.Context, code string) (*TokenResponse, err
 	return &tokenResp, nil
 }
 
-// createUserParams constructs parameter to save to Users database
-// populates fileds by calling the spotify api
-func createUserParams(accessToken string) (*database.CreateUserParams, error) {
+func getUserFromSpotify(accessToken string) (UserInfoResponse, error) {
 	// Step 1: Get user's info from the Spotify API
 	// Prepare request
+	userInfoResponse := UserInfoResponse{}
 	req, err := http.NewRequest("GET", "https://api.spotify.com/v1/me", nil)
 	if err != nil {
-		return nil, err
+		return userInfoResponse, err
 	}
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
@@ -133,43 +147,45 @@ func createUserParams(accessToken string) (*database.CreateUserParams, error) {
 	client := http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return userInfoResponse, err
 	}
 	defer resp.Body.Close()
 
 	// Read response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
-	}
-
-	// Parse JSON response received from spotify
-	var userInfoResponse struct {
-		Email       string `json:"email"`
-		UserID      string `json:"id"`
-		DisplayName string `json:"display_name"`
+		return userInfoResponse, err
 	}
 
 	err = json.Unmarshal(body, &userInfoResponse)
 
 	if err != nil {
 		fmt.Printf("Error parsing JSON %s\n", err)
-		return nil, err
+		return userInfoResponse, err
 	}
 
-	fmt.Printf("User received; userID: %s, and user email: %s, displayName: %s\n",
-		userInfoResponse.UserID,
-		userInfoResponse.Email,
-		userInfoResponse.DisplayName)
+	return userInfoResponse, err
+}
+
+func (authServer *AuthServer) createAndSaveUser(ctx context.Context, userInfoResponse UserInfoResponse) (database.User, error) {
 
 	createUserParams := database.CreateUserParams{
-		ID:        uuid.New(),
+		ID:        userInfoResponse.UserID,
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
 		Name:      userInfoResponse.DisplayName,
-		UserID:    userInfoResponse.UserID,
 		Email:     userInfoResponse.Email,
 	}
-	return &createUserParams, nil
+
+	// Save to the database
+	dbUser, err := authServer.DB.CreateUser(ctx, createUserParams)
+	if err != nil {
+		// TODO - need to handle error here
+		fmt.Printf("Error creating the user %v.\n", dbUser)
+		return database.User{}, err
+	}
+
+	fmt.Printf("Successfully saved user to the database: %v\n", dbUser)
+	return dbUser, nil
 
 }

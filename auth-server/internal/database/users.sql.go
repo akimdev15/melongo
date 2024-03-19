@@ -8,22 +8,19 @@ package database
 import (
 	"context"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (id, created_at, updated_at, name, user_id, email, api_key)
-VALUES ($1, $2, $3, $4, $5, $6, encode(sha256(random()::text::bytea), 'hex'))
-RETURNING id, created_at, updated_at, name, user_id, email, api_key
+INSERT INTO users (id, created_at, updated_at, name, email, api_key)
+VALUES ($1, $2, $3, $4, $5, encode(sha256(random()::text::bytea), 'hex'))
+RETURNING id, created_at, updated_at, name, email, api_key
 `
 
 type CreateUserParams struct {
-	ID        uuid.UUID
+	ID        string
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	Name      string
-	UserID    string
 	Email     string
 }
 
@@ -33,7 +30,6 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.CreatedAt,
 		arg.UpdatedAt,
 		arg.Name,
-		arg.UserID,
 		arg.Email,
 	)
 	var i User
@@ -42,7 +38,6 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Name,
-		&i.UserID,
 		&i.Email,
 		&i.ApiKey,
 	)
@@ -50,10 +45,10 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 }
 
 const getUserById = `-- name: GetUserById :one
-SELECT id, created_at, updated_at, name, user_id, email, api_key FROM users WHERE id = $1
+SELECT id, created_at, updated_at, name, email, api_key FROM users WHERE id = $1
 `
 
-func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (User, error) {
+func (q *Queries) GetUserById(ctx context.Context, id string) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserById, id)
 	var i User
 	err := row.Scan(
@@ -61,7 +56,6 @@ func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Name,
-		&i.UserID,
 		&i.Email,
 		&i.ApiKey,
 	)
