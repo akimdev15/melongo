@@ -18,11 +18,13 @@ import (
 
 	"github.com/akimdev15/melongo/auth-server/auth"
 	"github.com/akimdev15/melongo/auth-server/internal/database"
+	"github.com/google/uuid"
 )
 
 type AuthServer struct {
 	auth.UnimplementedAuthServiceServer
-	DB *database.Queries
+	DB     *database.Queries
+	DBConn *sql.DB
 }
 
 // Parse JSON response received from spotify
@@ -41,13 +43,31 @@ func (app *apiConfig) grpcListen() {
 	}
 
 	grpcServer := grpc.NewServer()
-	auth.RegisterAuthServiceServer(grpcServer, &AuthServer{DB: app.DB})
+	auth.RegisterAuthServiceServer(grpcServer, &AuthServer{DB: app.DB, DBConn: app.DBConn})
 	log.Printf("gRPC Server started on port %s\n", gRPCPORT)
 	if err = grpcServer.Serve(lis); err != nil {
 		log.Fatalf("Failed to listen for grpc %v", err)
 	}
 }
 
+// func (authServer *AuthServer) AuthenticateUser(ctx context.Context, req *auth.AuthenticateRequest) (*auth.AuthenticateResponse, error) {
+// 	apiKey := req.GetApiKey()
+// 	if apiKey == "" {
+// 		return nil, errors.New("API_KEY is empty")
+// 	}
+//
+// 	userToken, err := authServer.DB.GetUserTokenByAPIKey(ctx, apiKey)
+// 	if err != nil {
+// 		fmt.Printf("Error getting user token from the DB. error: %v\n", err)
+// 		return nil, err
+// 	}
+//
+//
+// }
+
+// AuthorizeUser handles authorization callback from spotify.
+// Handles token generation and save/get user
+// For initial login to the website
 func (authServer *AuthServer) AuthorizeUser(ctx context.Context, req *auth.AuthCallbackRequest) (*auth.AuthCallbackResponse, error) {
 	code := req.GetCode()
 	fmt.Println("Received gRPC call from broker-service")
@@ -69,14 +89,32 @@ func (authServer *AuthServer) AuthorizeUser(ctx context.Context, req *auth.AuthC
 	// Check if user already exists
 	savedUser, err := authServer.DB.GetUserById(ctx, userInfoResponse.UserID)
 	fmt.Printf("Existing user: %v", savedUser)
-	fmt.Println("Error: ", err)
 	if err == sql.ErrNoRows {
-		savedUser, err = authServer.createAndSaveUser(ctx, userInfoResponse)
+		// Use transaction
+		tx, err := authServer.DBConn.Begin()
+		if err != nil {
+			fmt.Println("Failed creating DB transaction")
+			return nil, err
+		}
+		defer tx.Rollback()
+		qtx := authServer.DB.WithTx(tx)
+
+		savedUser, err = authServer.createAndSaveUser(ctx, userInfoResponse, qtx)
 		if err != nil {
 			// TODO - need to handle error
 			fmt.Printf("Failed to create user. err: %v\n", err)
 			return nil, err
 		}
+
+		// save the token in the user_tokens db
+		err = authServer.createUserToken(ctx, token, savedUser.ApiKey, qtx)
+		if err != nil {
+			fmt.Printf("Failed to save token to db for the user: %s\n. err: %v\n", savedUser.ID, err)
+			return nil, err
+		}
+
+		// transaction succeeded
+		tx.Commit()
 	} else if err != nil {
 		fmt.Printf("Error checking for existing user. err: %v\n", err)
 		return nil, err
@@ -88,6 +126,22 @@ func (authServer *AuthServer) AuthorizeUser(ctx context.Context, req *auth.AuthC
 	}
 
 	return res, nil
+}
+
+// createUserToken saves the token information in the DB
+func (authServer *AuthServer) createUserToken(ctx context.Context, token *TokenResponse, apiKey string, qtx *database.Queries) error {
+	expireSecond := int64(token.Expires_In)
+	expirationTime := time.Now().Add(time.Second * time.Duration(expireSecond))
+	_, err := qtx.CreateUserToken(ctx, database.CreateUserTokenParams{
+
+		ID:           uuid.New(),
+		ApiKey:       apiKey,
+		AccessToken:  token.AccessToken,
+		RefreshToken: token.Refresh_Token,
+		ExpireTime:   expirationTime,
+	})
+
+	return err
 }
 
 func exchangeCodeForToken(ctx context.Context, code string) (*TokenResponse, error) {
@@ -167,7 +221,7 @@ func getUserFromSpotify(accessToken string) (UserInfoResponse, error) {
 	return userInfoResponse, err
 }
 
-func (authServer *AuthServer) createAndSaveUser(ctx context.Context, userInfoResponse UserInfoResponse) (database.User, error) {
+func (authServer *AuthServer) createAndSaveUser(ctx context.Context, userInfoResponse UserInfoResponse, qtx *database.Queries) (database.User, error) {
 
 	createUserParams := database.CreateUserParams{
 		ID:        userInfoResponse.UserID,
@@ -178,7 +232,7 @@ func (authServer *AuthServer) createAndSaveUser(ctx context.Context, userInfoRes
 	}
 
 	// Save to the database
-	dbUser, err := authServer.DB.CreateUser(ctx, createUserParams)
+	dbUser, err := qtx.CreateUser(ctx, createUserParams)
 	if err != nil {
 		// TODO - need to handle error here
 		fmt.Printf("Error creating the user %v.\n", dbUser)

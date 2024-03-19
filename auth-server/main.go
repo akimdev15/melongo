@@ -20,11 +20,14 @@ var (
 )
 
 type TokenResponse struct {
-	AccessToken string `json:"access_token"`
+	AccessToken   string `json:"access_token"`
+	Expires_In    int    `json:"expires_in"`
+	Refresh_Token string `json:"refresh_token"`
 }
 
 type apiConfig struct {
-	DB *database.Queries
+	DB     *database.Queries
+	DBConn *sql.DB
 }
 
 const PORT = ":8081"
@@ -49,7 +52,8 @@ func main() {
 
 	db := database.New(conn)
 	apiCfg := apiConfig{
-		DB: db,
+		DB:     db,
+		DBConn: conn,
 	}
 
 	clientID = os.Getenv("ClientID")
