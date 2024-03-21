@@ -1,16 +1,16 @@
 syntax = "proto3";
 
-package auth;
+package proto;
 
-option go_package = "../auth";
+option go_package = "../proto";
 
 
-// AuthCallbackRequest Callback will contain code and state (not using now)
+// Callback will contain code and state (not using now)
 message AuthCallbackRequest {
 	string code = 1;
 }
 
-// AuthCallbackResponse returns the userID and the name of the user created
+// Returns the userID and the name of the user created
 message AuthCallbackResponse {
 	string apiKey = 1;
 	string name = 2;

@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/akimdev15/melongo/broker/auth"
+	"github.com/akimdev15/melongo/broker/proto"
 	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -31,7 +31,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	// define routes here
-	mux.HandleFunc("POST /handle", handleSubmission)
+	mux.HandleFunc("POST /handle", middlewareAuth(handleSubmission))
 	mux.HandleFunc("GET /authorize", handleAuthorization)
 	mux.HandleFunc("GET /callback", handleSpotifyCallback)
 
@@ -75,12 +75,12 @@ func handleSpotifyCallback(w http.ResponseWriter, r *http.Request) {
 	defer conn.Close()
 
 	// create client
-	client := auth.NewAuthServiceClient(conn)
+	client := proto.NewAuthServiceClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	// call AuthorizeUser method in the auth service
-	user, err := client.AuthorizeUser(ctx, &auth.AuthCallbackRequest{
+	user, err := client.AuthorizeUser(ctx, &proto.AuthCallbackRequest{
 		Code: code,
 	})
 	if err != nil {
@@ -88,7 +88,7 @@ func handleSpotifyCallback(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Error in AuthorizeUser method: %v\n", err)
 		return
 	}
-	fmt.Printf("User created for user: %s\n", user.Name)
+	fmt.Printf("User: %s\n", user.Name)
 	type JsonResponse struct {
 		Name string
 	}
@@ -99,8 +99,10 @@ func handleSpotifyCallback(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusAccepted, payload)
 }
 
-func handleSubmission(w http.ResponseWriter, r *http.Request) {
+func handleSubmission(w http.ResponseWriter, r *http.Request, accessToken string) {
 	fmt.Println("Hit Handle Submission")
+	fmt.Printf("Access Token: %s", accessToken)
+
 }
 
 func handleAuthorization(w http.ResponseWriter, r *http.Request) {

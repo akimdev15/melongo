@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -16,13 +17,13 @@ import (
 
 	"google.golang.org/grpc"
 
-	"github.com/akimdev15/melongo/auth-server/auth"
 	"github.com/akimdev15/melongo/auth-server/internal/database"
+	"github.com/akimdev15/melongo/auth-server/proto"
 	"github.com/google/uuid"
 )
 
 type AuthServer struct {
-	auth.UnimplementedAuthServiceServer
+	proto.UnimplementedAuthServiceServer
 	DB     *database.Queries
 	DBConn *sql.DB
 }
@@ -43,32 +44,38 @@ func (app *apiConfig) grpcListen() {
 	}
 
 	grpcServer := grpc.NewServer()
-	auth.RegisterAuthServiceServer(grpcServer, &AuthServer{DB: app.DB, DBConn: app.DBConn})
+	proto.RegisterAuthServiceServer(grpcServer, &AuthServer{DB: app.DB, DBConn: app.DBConn})
 	log.Printf("gRPC Server started on port %s\n", gRPCPORT)
 	if err = grpcServer.Serve(lis); err != nil {
 		log.Fatalf("Failed to listen for grpc %v", err)
 	}
 }
 
-// func (authServer *AuthServer) AuthenticateUser(ctx context.Context, req *auth.AuthenticateRequest) (*auth.AuthenticateResponse, error) {
-// 	apiKey := req.GetApiKey()
-// 	if apiKey == "" {
-// 		return nil, errors.New("API_KEY is empty")
-// 	}
-//
-// 	userToken, err := authServer.DB.GetUserTokenByAPIKey(ctx, apiKey)
-// 	if err != nil {
-// 		fmt.Printf("Error getting user token from the DB. error: %v\n", err)
-// 		return nil, err
-// 	}
-//
-//
-// }
+func (authServer *AuthServer) AuthenticateUser(ctx context.Context, req *proto.AuthenticateRequest) (*proto.AuthenticateResponse, error) {
+	apiKey := req.GetApiKey()
+	if apiKey == "" {
+		return nil, errors.New("API_KEY is empty")
+	}
+
+	userToken, err := authServer.DB.GetUserTokenByAPIKey(ctx, apiKey)
+	if err != nil {
+		fmt.Printf("Error getting user token from the DB. error: %v\n", err)
+		return nil, err
+	}
+
+	// TODO - put in a logic for refresh token
+
+	res := &proto.AuthenticateResponse{
+		AccessToken: userToken.AccessToken,
+	}
+
+	return res, nil
+}
 
 // AuthorizeUser handles authorization callback from spotify.
 // Handles token generation and save/get user
 // For initial login to the website
-func (authServer *AuthServer) AuthorizeUser(ctx context.Context, req *auth.AuthCallbackRequest) (*auth.AuthCallbackResponse, error) {
+func (authServer *AuthServer) AuthorizeUser(ctx context.Context, req *proto.AuthCallbackRequest) (*proto.AuthCallbackResponse, error) {
 	code := req.GetCode()
 	fmt.Println("Received gRPC call from broker-service")
 
@@ -120,7 +127,7 @@ func (authServer *AuthServer) AuthorizeUser(ctx context.Context, req *auth.AuthC
 		return nil, err
 	}
 
-	res := &auth.AuthCallbackResponse{
+	res := &proto.AuthCallbackResponse{
 		ApiKey: savedUser.ApiKey,
 		Name:   savedUser.Name,
 	}

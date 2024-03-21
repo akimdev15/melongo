@@ -4,7 +4,7 @@
 // - protoc             v4.25.3
 // source: auth.proto
 
-package auth
+package proto
 
 import (
 	context "context"
@@ -19,8 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	AuthService_AuthorizeUser_FullMethodName    = "/auth.AuthService/AuthorizeUser"
-	AuthService_AuthenticateUser_FullMethodName = "/auth.AuthService/AuthenticateUser"
+	AuthService_AuthorizeUser_FullMethodName    = "/proto.AuthService/AuthorizeUser"
+	AuthService_AuthenticateUser_FullMethodName = "/proto.AuthService/AuthenticateUser"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -143,7 +143,7 @@ func _AuthService_AuthenticateUser_Handler(srv interface{}, ctx context.Context,
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var AuthService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "auth.AuthService",
+	ServiceName: "proto.AuthService",
 	HandlerType: (*AuthServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

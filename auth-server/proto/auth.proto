@@ -1,19 +1,27 @@
 syntax = "proto3";
 
-package auth;
+package proto;
 
-option go_package = "../auth";
+option go_package = "../proto";
 
 
-// Callback will contain code and state (not using now)
+// AuthCallbackRequest Callback will contain code and state (not using now)
 message AuthCallbackRequest {
 	string code = 1;
 }
 
-// Returns the userID and the name of the user created
+// AuthCallbackResponse returns the userID and the name of the user created
 message AuthCallbackResponse {
 	string apiKey = 1;
 	string name = 2;
+}
+
+message AuthenticateRequest {
+	string apiKey = 1;
+}
+
+message AuthenticateResponse {
+	string accessToken = 1;
 }
 
 service AuthService {
@@ -23,4 +31,8 @@ service AuthService {
 	// Also save the token, refresh token, expire date in a database.
 	// Return userID and name that user can use to make a subsequent request.
 	rpc AuthorizeUser(AuthCallbackRequest) returns (AuthCallbackResponse);
+
+	// When user is requesting for something like playlist, will always have 
+	// to go through this authentication method
+	rpc AuthenticateUser(AuthenticateRequest) returns (AuthenticateResponse);
 }
