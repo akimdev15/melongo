@@ -16,3 +16,15 @@
     	- setup sqlc.yaml file
     	- inside the sql/schema directory, run: goose postgres postgres://postgres:@localhost:5432/melongo up
 
+## PORTS 
+
+	- broker-server
+		a) http: 8080
+	- auth-server
+		a) http: 8081
+		b) gRPC: 50001
+
+## NOTES
+
+	- Make a central database server where it's job is to soeley save it to the DB using message queue (non blocking)
+		a) or maybe async grpc

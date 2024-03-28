@@ -6,8 +6,6 @@ package database
 
 import (
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type User struct {
@@ -20,7 +18,7 @@ type User struct {
 }
 
 type UserToken struct {
-	ID           uuid.UUID
+	ID           string
 	ApiKey       string
 	AccessToken  string
 	RefreshToken string

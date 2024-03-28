@@ -19,7 +19,6 @@ import (
 
 	"github.com/akimdev15/melongo/auth-server/internal/database"
 	"github.com/akimdev15/melongo/auth-server/proto"
-	"github.com/google/uuid"
 )
 
 type AuthServer struct {
@@ -114,7 +113,7 @@ func (authServer *AuthServer) AuthorizeUser(ctx context.Context, req *proto.Auth
 		}
 
 		// save the token in the user_tokens db
-		err = authServer.createUserToken(ctx, token, savedUser.ApiKey, qtx)
+		err = authServer.createUserToken(ctx, token, savedUser.ApiKey, savedUser.ID, qtx)
 		if err != nil {
 			fmt.Printf("Failed to save token to db for the user: %s\n. err: %v\n", savedUser.ID, err)
 			return nil, err
@@ -136,12 +135,11 @@ func (authServer *AuthServer) AuthorizeUser(ctx context.Context, req *proto.Auth
 }
 
 // createUserToken saves the token information in the DB
-func (authServer *AuthServer) createUserToken(ctx context.Context, token *TokenResponse, apiKey string, qtx *database.Queries) error {
+func (authServer *AuthServer) createUserToken(ctx context.Context, token *TokenResponse, apiKey string, userID string, qtx *database.Queries) error {
 	expireSecond := int64(token.Expires_In)
 	expirationTime := time.Now().Add(time.Second * time.Duration(expireSecond))
 	_, err := qtx.CreateUserToken(ctx, database.CreateUserTokenParams{
-
-		ID:           uuid.New(),
+		ID:           userID,
 		ApiKey:       apiKey,
 		AccessToken:  token.AccessToken,
 		RefreshToken: token.Refresh_Token,

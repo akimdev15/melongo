@@ -24,7 +24,8 @@ func main() {
 	godotenv.Load(".env")
 	portStr := os.Getenv("PORT")
 	if portStr == "" {
-		log.Fatal("PORT is not found in the ENV file")
+		portStr = ":9090"
+		fmt.Println("Defaulting the port string to: ", portStr)
 	}
 
 	dbURL := os.Getenv("DB_URL")

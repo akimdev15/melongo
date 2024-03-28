@@ -8,8 +8,6 @@ package database
 import (
 	"context"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 const createUserToken = `-- name: CreateUserToken :one
@@ -19,7 +17,7 @@ RETURNING id, api_key, access_token, refresh_token, expire_time, created_at, upd
 `
 
 type CreateUserTokenParams struct {
-	ID           uuid.UUID
+	ID           string
 	ApiKey       string
 	AccessToken  string
 	RefreshToken string

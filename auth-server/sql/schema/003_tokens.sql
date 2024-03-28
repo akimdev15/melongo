@@ -1,7 +1,7 @@
 -- +goose Up
 
 CREATE TABLE user_tokens (
-    id UUID PRIMARY KEY,
+    id TEXT PRIMARY KEY,
     api_key VARCHAR(64) NOT NULL REFERENCES users(api_key),
     access_token TEXT NOT NULL,
     refresh_token TEXT NOT NULL,

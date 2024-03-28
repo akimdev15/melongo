@@ -38,7 +38,10 @@ func main() {
 	corsHandler := corsMiddleware(mux)
 
 	fmt.Printf("Listening on port%s", PORT)
-	http.ListenAndServe(PORT, corsHandler)
+	err = http.ListenAndServe(PORT, corsHandler)
+	if err != nil {
+		return
+	}
 
 }
 
