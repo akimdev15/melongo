@@ -31,9 +31,10 @@ func main() {
 	mux := http.NewServeMux()
 
 	// define routes here
-	mux.HandleFunc("POST /handle", middlewareAuth(handleSubmission))
 	mux.HandleFunc("GET /authorize", handleAuthorization)
 	mux.HandleFunc("GET /callback", handleSpotifyCallback)
+	mux.HandleFunc("POST /handle", middlewareAuth(handleSubmission))
+	mux.HandleFunc("POST /createPlaylist", middlewareAuth(handleCreatePlaylist))
 
 	corsHandler := corsMiddleware(mux)
 

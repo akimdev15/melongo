@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "../proto";
+
+
+
+message CreatePlaylistRequest{
+	string apiKey = 1;
+	string accessToken = 2;
+	string playlistName = 3;
+}
+
+message CreatePlaylistResponse {
+	string spotifyPlaylistID = 1;
+	string externalURL = 2;
+	string name = 3;
+}
+
+service PlaylistService {
+	rpc CreatePlaylist(CreatePlaylistRequest) returns (CreatePlaylistResponse);
+}

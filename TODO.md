@@ -6,6 +6,9 @@
 	Need to check if the accessToken is valid and if not, need to request a refreshToken. 
 - TODO next: Need to map user to token and save it to the database. Also handle the case where when user access through /callabck, 
 	only save the user if they don't exist. Otherwise, just get their api key and update the valid token
+- **********
+- Connect the auth server with the playlist server so that it can go through the authorization process
+- Create a refresh token endpoint so that in case 401 error occurs while inside the playlist service
 
 ## Commands
 

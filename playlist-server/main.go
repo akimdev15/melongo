@@ -44,6 +44,9 @@ func main() {
 		DBConn: conn,
 	}
 
+	// Start gRPC server
+	go apiCfg.grpcListen()
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /test", apiCfg.testHandler)
 	corsHandler := corsMiddleware(mux)

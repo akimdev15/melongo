@@ -63,3 +63,31 @@ func (q *Queries) GetUserTokenByAPIKey(ctx context.Context, apiKey string) (User
 	)
 	return i, err
 }
+
+const updateToken = `-- name: UpdateToken :exec
+UPDATE user_tokens
+SET access_token = $1,
+    refresh_token = $2,
+    expire_time = $3,
+    updated_at = $4
+WHERE id = $5
+`
+
+type UpdateTokenParams struct {
+	AccessToken  string
+	RefreshToken string
+	ExpireTime   time.Time
+	UpdatedAt    time.Time
+	ID           string
+}
+
+func (q *Queries) UpdateToken(ctx context.Context, arg UpdateTokenParams) error {
+	_, err := q.db.ExecContext(ctx, updateToken,
+		arg.AccessToken,
+		arg.RefreshToken,
+		arg.ExpireTime,
+		arg.UpdatedAt,
+		arg.ID,
+	)
+	return err
+}

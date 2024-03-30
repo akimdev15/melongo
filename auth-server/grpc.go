@@ -34,6 +34,15 @@ type UserInfoResponse struct {
 	DisplayName string `json:"display_name"`
 }
 
+// Define a struct to represent the response from the Spotify token endpoint
+type SpotifyTokenResponse struct {
+	AccessToken  string `json:"access_token"`
+	TokenType    string `json:"token_type"`
+	ExpiresIn    int    `json:"expires_in"`
+	RefreshToken string `json:"refresh_token"`
+	Scope        string `json:"scope"`
+}
+
 const gRPCPORT = "50001"
 
 func (app *apiConfig) grpcListen() {
@@ -62,7 +71,41 @@ func (authServer *AuthServer) AuthenticateUser(ctx context.Context, req *proto.A
 		return nil, err
 	}
 
-	// TODO - put in a logic for refresh token
+	fmt.Printf("current token expire time -> %v\n time now: %v\n", userToken.ExpireTime, time.Now().UTC())
+	if userToken.ExpireTime.Before(time.Now().UTC()) {
+		fmt.Println("Access-Token expired. Getting a new token...")
+		refreshToken, err := RefreshToken(userToken.RefreshToken, ctx)
+		if err != nil {
+			fmt.Printf("Error refreshing token: %v\n", err)
+			return nil, err
+		}
+		if refreshToken.Refresh_Token == "" || refreshToken.AccessToken == "" {
+			return nil, errors.New("either refresh-token or access-token is null")
+		}
+
+		// Update user token with the refresh token
+		newExpireTime := time.Now().UTC().Add(time.Duration(refreshToken.Expires_In) * time.Second)
+		userToken.AccessToken = refreshToken.AccessToken
+
+		// Asynchronously update to the DB
+		errCh := make(chan error)
+		go func() {
+			err = authServer.DB.UpdateToken(ctx, database.UpdateTokenParams{
+				AccessToken:  refreshToken.AccessToken,
+				RefreshToken: refreshToken.Refresh_Token,
+				ExpireTime:   newExpireTime,
+				UpdatedAt:    time.Now(),
+				ID:           userToken.ID,
+			})
+			// send err or nil if successful to the channel
+			errCh <- err
+		}()
+		err = <-errCh
+		if err != nil {
+			fmt.Printf("Error updating the user token with the refresh token. Err: %v", err)
+			return nil, err
+		}
+	}
 
 	res := &proto.AuthenticateResponse{
 		AccessToken: userToken.AccessToken,
@@ -137,7 +180,7 @@ func (authServer *AuthServer) AuthorizeUser(ctx context.Context, req *proto.Auth
 // createUserToken saves the token information in the DB
 func (authServer *AuthServer) createUserToken(ctx context.Context, token *TokenResponse, apiKey string, userID string, qtx *database.Queries) error {
 	expireSecond := int64(token.Expires_In)
-	expirationTime := time.Now().Add(time.Second * time.Duration(expireSecond))
+	expirationTime := time.Now().UTC().Add(time.Second * time.Duration(expireSecond))
 	_, err := qtx.CreateUserToken(ctx, database.CreateUserTokenParams{
 		ID:           userID,
 		ApiKey:       apiKey,
@@ -247,4 +290,57 @@ func (authServer *AuthServer) createAndSaveUser(ctx context.Context, userInfoRes
 	fmt.Printf("Successfully saved user to the database: %v\n", dbUser)
 	return dbUser, nil
 
+}
+
+func RefreshToken(refreshToken string, ctx context.Context) (*TokenResponse, error) {
+	// Construct the request body
+	data := url.Values{}
+	data.Set("grant_type", "refresh_token")
+	data.Set("refresh_token", refreshToken)
+	fmt.Println("refresh token: ", refreshToken)
+
+	// Prepare request
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://accounts.spotify.com/api/token", strings.NewReader(data.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(clientID+":"+clientSecret)))
+
+	// Send request
+	client := http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+
+		}
+	}(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	//// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var tokenResponse SpotifyTokenResponse
+	err = json.Unmarshal(body, &tokenResponse)
+
+	if err != nil {
+		fmt.Printf("Error parsing JSON %s\n", err)
+		return nil, err
+	}
+
+	// Construct the TokenResponse object
+	token := &TokenResponse{
+		AccessToken:   tokenResponse.AccessToken,
+		Expires_In:    tokenResponse.ExpiresIn,
+		Refresh_Token: tokenResponse.RefreshToken,
+	}
+
+	return token, nil
 }
