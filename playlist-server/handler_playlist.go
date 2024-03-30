@@ -2,28 +2,34 @@ package main
 
 import (
 	"fmt"
-	"github.com/melongo/playlist-server/spotify"
+	"github.com/akimdev15/melongo/playlist-server/spotify"
+	"github.com/akimdev15/mscraper"
 	"net/http"
 )
 
 // AccessToken TODO - only for testing purpose. Should be REMOVED!!
-const AccessToken = "BQA-_dXRuy4342MQBdqFd2VuOVDRW1EhC8MlJfu1A3MuBtIkdKUOCf4RGfn5_rOcJmgXUnoGMJZCIhDzAGrUUpiWIsdhBSRUwO-Nu5my1ZefyMjyQkwp0G-9k8x3Jfw0kbOlEtNZrwtfcDCQjTUGBvbQSG8L8ZTH2QgDRwAOA-4f-JTLK7oqIGvBZsipbBNEZr9Bypq0aKNhCT7HNaoK2gAlT7X0yEqlcauj7dnq0e2Wxo1c64uShqrQcp8jr_GItCAhpyAg97jv9Gz-Pm7F5AvSwQ"
+const AccessToken = "BQDTLi92KAD0GfTFEx2NgKx9_AJ98CRVOO4aCEuBT_4IiDm8dLZF71BHsL2-0-hqGGcsZF89fBXBmrmNJo_Livv-qksl7zv2qNqIs0xZQLeMYUumJn-gpY9R_4Oi3WXljEnG1V4RJLMghB8t4lvo7wKsqmiEHGyLoOrJuCxHqDR5NxmGSTUiCHtGXxW1-B5r9UPrL442Ji_1r7X2xonszCetTvgLW2_SIqSAnv2Esu1oQnl9qP7fW9rvKg224n-wX3_EmALsura-nOLiIM3TlmOECg"
 
 func (apiCfg *apiConfig) testHandler(w http.ResponseWriter, r *http.Request) {
-	// search artist id test
-	artistID, err := spotify.SearchArtistID("아이유", AccessToken)
-	if err != nil {
-		fmt.Println("Error searching for artist ID. err: ", err)
-		respondWithError(w, 401, fmt.Sprintf("Error getting the artist ID. err: %v\n", err))
-	}
-	fmt.Printf("ArtistID: %v\n", artistID)
 
-	tracks, err := spotify.SearchTracksByArtist(artistID, AccessToken)
-	if err != nil {
-		respondWithError(w, 401, fmt.Sprintf("Error getting the tracks. err: %v\n", err))
-	}
-	for _, track := range tracks {
-		fmt.Printf("URI: %s ->  Track Name: %s -> Artist Name: %s\n", track.URI, track.Name, track.Album.Artists[0].Name)
+	songs := mscraper.GetNewestSongsMelon("0300")
+
+	var searchResult spotify.TracksResponse
+	for _, song := range songs[:1] {
+		artistInfo, err := spotify.SearchArtistID(song.Artist, AccessToken)
+		// search artist id test
+		if err != nil {
+			fmt.Println("Error searching for artist ID. err: ", err)
+			respondWithError(w, 401, fmt.Sprintf("Error getting the artist ID. err: %v\n", err))
+		}
+		fmt.Printf("ArtistID: %v\n", artistInfo)
+
+		searchResult, err = spotify.SearchTrack(song.Title, artistInfo.Name, AccessToken)
+		if err != nil {
+			fmt.Println("error while getting the search result. Error: ", err)
+		}
+
+		fmt.Printf("search result: %v\n", searchResult)
 	}
 
 	playlists, err := spotify.GetUserPlaylists(AccessToken)
@@ -34,27 +40,6 @@ func (apiCfg *apiConfig) testHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("Playlists: ", playlists)
 
-	respondWithJSON(w, 200, tracks)
+	respondWithJSON(w, 200, searchResult)
 
-	// for testing
-	//searchResult, err := apiCfg.searchTrack("홀씨", "아이유", AccessToken)
-	//if err != nil {
-	//	fmt.Println("error while getting the search result. Error: ", err)
-	//}
-	//
-	//fmt.Printf("search result: %v\n", searchResult)
-	//
-	//item := searchResult.Tracks.Items[0]
-	//
-	//songName := item.Name
-	//
-	//// Artist name
-	//artistName := item.Album.Artists[0].Name
-	//
-	//// Track URI
-	//trackURI := item.URI
-	//
-	//fmt.Printf("Song Name: %s\n", songName)
-	//fmt.Printf("Artist Name: %s\n", artistName)
-	//fmt.Printf("Track URI: %s\n", trackURI)
 }

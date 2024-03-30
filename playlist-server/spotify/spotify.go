@@ -26,17 +26,6 @@ type Artist struct {
 	URI          string       `json:"uri"`
 }
 
-type ArtistItem struct {
-	ID string `json:"id"`
-	// Add other artist fields you want to extract
-}
-
-type ArtistsResponse struct {
-	Artists struct {
-		Items []ArtistItem `json:"items"`
-	} `json:"artists"`
-}
-
 type Album struct {
 	Artists []Artist `json:"artists"`
 }
@@ -47,9 +36,42 @@ type Track struct {
 	Name  string `json:"name"`
 }
 
-type TracksResponse struct {
+// ArtistsResponse - result of artist search
+type ArtistsResponse struct {
+	Artists struct {
+		Items []ArtistItem `json:"items"`
+	} `json:"artists"`
+}
+type ArtistItem struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	// Add other artist fields you want to extract
+}
+
+// END Artist Response
+
+// ArtistTracksResponse - result of artist's top tracks
+type ArtistTracksResponse struct {
 	Tracks []Track `json:"tracks"`
 }
+
+// End ArtistTracksResponse
+
+// TracksResponse - result of query search (song + artist)
+//type TracksResponse struct {
+//	Tracks Tracks `json:"tracks"`
+//}
+//type Tracks struct {
+//	Tracks []Track `json:"items"`
+//}
+
+type TracksResponse struct {
+	Items struct {
+		Tracks []Track `json:"items"`
+	} `json:"tracks"`
+}
+
+// End TracksResponse
 
 // GetUserPlaylists gets all the user's playlist names
 func GetUserPlaylists(accessToken string) ([]Playlist, error) {
@@ -72,7 +94,7 @@ func GetUserPlaylists(accessToken string) ([]Playlist, error) {
 	return playlistsResponse.Items, nil
 }
 
-func SearchArtistID(artistName string, accessToken string) (string, error) {
+func SearchArtistID(artistName string, accessToken string) (ArtistItem, error) {
 	encodedArtistName := url.QueryEscape(artistName)
 	// Construct the search query for the artist
 	address := fmt.Sprintf("https://api.spotify.com/v1/search?q=%s&type=artist&locale=ko_KR", encodedArtistName)
@@ -80,24 +102,26 @@ func SearchArtistID(artistName string, accessToken string) (string, error) {
 	body, err := makeSpotifyRequest(address, accessToken)
 	if err != nil {
 		fmt.Println("Error making the request to the spotify with the url: ", address)
-		return "", err
+		return ArtistItem{}, err
 	}
 
 	// Unmarshal JSON data into TracksResponse struct
 	var response ArtistsResponse
 	if err := json.Unmarshal(body, &response); err != nil {
 		fmt.Println("Error:", err)
-		return "", err
+		return ArtistItem{}, err
 	}
 
 	// Extract the Spotify ID of the first artist
 	if len(response.Artists.Items) <= 0 {
 		fmt.Println("Couldn't search for an Artist ID. response.Artist.Items is empty")
-		return "", nil
+		return ArtistItem{}, nil
 	}
 
-	artistID := response.Artists.Items[0].ID
-	return artistID, nil
+	fmt.Printf("*** Artist Items: %v\n", response.Artists.Items[0])
+
+	artist := response.Artists.Items[0]
+	return artist, nil
 }
 
 func SearchTracksByArtist(artistID string, accessToken string) ([]Track, error) {
@@ -107,7 +131,7 @@ func SearchTracksByArtist(artistID string, accessToken string) ([]Track, error) 
 		fmt.Println("Error making the request to the spotify with the url: ", address)
 		return nil, err
 	}
-	var tracksResponse TracksResponse
+	var tracksResponse ArtistTracksResponse
 	if err := json.Unmarshal(body, &tracksResponse); err != nil {
 		fmt.Println("Error:", err)
 		return nil, err
@@ -122,40 +146,10 @@ func SearchTrack(title, artist, accessToken string) (TracksResponse, error) {
 	encodedArtist := url.QueryEscape(artist)
 	address := fmt.Sprintf("https://api.spotify.com/v1/search?q=track:%s+artist:%s&type=track", encodedTitle, encodedArtist)
 
-	req, err := http.NewRequest("GET", address, nil)
-	req.Header.Set("Authorization", "Bearer "+accessToken)
-	req.Header.Set("Accept", "application/json; charset=utf-8")
+	body, err := makeSpotifyRequest(address, accessToken)
+
 	if err != nil {
-		fmt.Printf("Error creating the request. Error: %v\n", err)
-		return TracksResponse{}, err
-	}
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Println("Error response. err: ", err)
-		return TracksResponse{}, err
-	}
-
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			fmt.Println("error: ", err)
-		}
-	}(resp.Body)
-
-	var bodyReader = resp.Body
-
-	// Check HTTP status code
-	if resp.StatusCode != http.StatusOK {
-		fmt.Println("Error: Unexpected status code:", resp.Status)
-		return TracksResponse{}, err
-	}
-
-	// Read the response body
-	body, err := io.ReadAll(bodyReader)
-	if err != nil {
-		fmt.Println("Error reading the response body:", err)
+		fmt.Println("Error making the request to the spotify")
 		return TracksResponse{}, err
 	}
 

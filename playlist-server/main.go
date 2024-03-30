@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/akimdev15/melongo/playlist-server/internal/database"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
-	"github.com/melongo/playlist-server/internal/database"
 )
 
 type apiConfig struct {
