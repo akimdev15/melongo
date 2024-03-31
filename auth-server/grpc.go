@@ -75,18 +75,16 @@ func (authServer *AuthServer) AuthenticateUser(ctx context.Context, req *proto.A
 	if userToken.ExpireTime.Before(time.Now().UTC()) {
 		fmt.Println("Access-Token expired. Getting a new token...")
 		refreshToken, err := RefreshToken(userToken.RefreshToken, ctx)
+		fmt.Println("Refresh Token: ", refreshToken)
 		if err != nil {
 			fmt.Printf("Error refreshing token: %v\n", err)
 			return nil, err
-		}
-		if refreshToken.Refresh_Token == "" || refreshToken.AccessToken == "" {
-			return nil, errors.New("either refresh-token or access-token is null")
 		}
 
 		// Update user token with the refresh token
 		newExpireTime := time.Now().UTC().Add(time.Duration(refreshToken.Expires_In) * time.Second)
 		userToken.AccessToken = refreshToken.AccessToken
-
+		fmt.Println("HERE")
 		// Asynchronously update to the DB
 		errCh := make(chan error)
 		go func() {
@@ -100,7 +98,9 @@ func (authServer *AuthServer) AuthenticateUser(ctx context.Context, req *proto.A
 			// send err or nil if successful to the channel
 			errCh <- err
 		}()
+
 		err = <-errCh
+
 		if err != nil {
 			fmt.Printf("Error updating the user token with the refresh token. Err: %v", err)
 			return nil, err
@@ -109,6 +109,7 @@ func (authServer *AuthServer) AuthenticateUser(ctx context.Context, req *proto.A
 
 	res := &proto.AuthenticateResponse{
 		AccessToken: userToken.AccessToken,
+		UserID:      userToken.ID,
 	}
 
 	return res, nil
@@ -297,7 +298,6 @@ func RefreshToken(refreshToken string, ctx context.Context) (*TokenResponse, err
 	data := url.Values{}
 	data.Set("grant_type", "refresh_token")
 	data.Set("refresh_token", refreshToken)
-	fmt.Println("refresh token: ", refreshToken)
 
 	// Prepare request
 	req, err := http.NewRequestWithContext(ctx, "POST", "https://accounts.spotify.com/api/token", strings.NewReader(data.Encode()))

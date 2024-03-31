@@ -1,6 +1,7 @@
 package spotify
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -55,29 +56,32 @@ type ArtistTracksResponse struct {
 	Tracks []Track `json:"tracks"`
 }
 
-// End ArtistTracksResponse
-
 // TracksResponse - result of query search (song + artist)
-//type TracksResponse struct {
-//	Tracks Tracks `json:"tracks"`
-//}
-//type Tracks struct {
-//	Tracks []Track `json:"items"`
-//}
-
 type TracksResponse struct {
 	Items struct {
 		Tracks []Track `json:"items"`
 	} `json:"tracks"`
 }
 
-// End TracksResponse
+type NewPlayListRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Public      bool   `json:"public"`
+}
+
+// NewPlaylistResponse - result of creating new empty playlist
+type NewPlaylistResponse struct {
+	Description       string `json:"description"`
+	SpotifyPlaylistID string `json:"id"`
+	Name              string `json:"name"`
+	URI               string `json:"uri"`
+}
 
 // GetUserPlaylists gets all the user's playlist names
 func GetUserPlaylists(accessToken string) ([]Playlist, error) {
 	// Prepare request
 	address := "https://api.spotify.com/v1/me/playlists"
-	body, err := makeSpotifyRequest(address, accessToken)
+	body, err := makeSpotifyGetRequest(address, accessToken)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +103,7 @@ func SearchArtistID(artistName string, accessToken string) (ArtistItem, error) {
 	// Construct the search query for the artist
 	address := fmt.Sprintf("https://api.spotify.com/v1/search?q=%s&type=artist&locale=ko_KR", encodedArtistName)
 
-	body, err := makeSpotifyRequest(address, accessToken)
+	body, err := makeSpotifyGetRequest(address, accessToken)
 	if err != nil {
 		fmt.Println("Error making the request to the spotify with the url: ", address)
 		return ArtistItem{}, err
@@ -126,7 +130,7 @@ func SearchArtistID(artistName string, accessToken string) (ArtistItem, error) {
 
 func SearchTracksByArtist(artistID string, accessToken string) ([]Track, error) {
 	address := fmt.Sprintf("https://api.spotify.com/v1/artists/%s/top-tracks?country=KR", artistID)
-	body, err := makeSpotifyRequest(address, accessToken)
+	body, err := makeSpotifyGetRequest(address, accessToken)
 	if err != nil {
 		fmt.Println("Error making the request to the spotify with the url: ", address)
 		return nil, err
@@ -140,13 +144,13 @@ func SearchTracksByArtist(artistID string, accessToken string) ([]Track, error) 
 	return tracksResponse.Tracks, nil
 }
 
-// searchTrack looks up a music by title and artist
+// SearchTrack looks up a music by title and artist
 func SearchTrack(title, artist, accessToken string) (TracksResponse, error) {
 	encodedTitle := url.QueryEscape(title)
 	encodedArtist := url.QueryEscape(artist)
 	address := fmt.Sprintf("https://api.spotify.com/v1/search?q=track:%s+artist:%s&type=track", encodedTitle, encodedArtist)
 
-	body, err := makeSpotifyRequest(address, accessToken)
+	body, err := makeSpotifyGetRequest(address, accessToken)
 
 	if err != nil {
 		fmt.Println("Error making the request to the spotify")
@@ -164,9 +168,43 @@ func SearchTrack(title, artist, accessToken string) (TracksResponse, error) {
 	return response, nil
 }
 
-// MakeSpotifyRequest - With the given address, make a GET request to spotify
+// CreateNewPlaylist - creates a empty new playlist for the user
+func CreateNewPlaylist(name string, description string, isPublic bool, userId string, accessToken string) (NewPlaylistResponse, error) {
+	address := fmt.Sprintf("https://api.spotify.com/v1/users/%s/playlists", userId)
+
+	playlistRequest := NewPlayListRequest{
+		Name:        name,
+		Description: description,
+		Public:      isPublic,
+	}
+
+	body, err := json.Marshal(playlistRequest)
+	if err != nil {
+		fmt.Println("Error during json.Marshal of playlistRequest. Err: ", err)
+		return NewPlaylistResponse{}, err
+	}
+
+	body, err = makeSpotifyPostRequest(address, body, accessToken)
+
+	if err != nil {
+		fmt.Println("Error making the request to the spotify")
+		return NewPlaylistResponse{}, err
+	}
+
+	// Unmarshal JSON data into TracksResponse struct
+	var response NewPlaylistResponse
+	if err := json.Unmarshal(body, &response); err != nil {
+		fmt.Println("Error:", err)
+		return NewPlaylistResponse{}, err
+	}
+
+	fmt.Println("Successfully searched the track")
+	return response, nil
+}
+
+// makeSpotifyGetRequest - With the given address, make a GET request to spotify
 // returns response
-func makeSpotifyRequest(address string, accessToken string) ([]byte, error) {
+func makeSpotifyGetRequest(address string, accessToken string) ([]byte, error) {
 	// Create request
 	req, err := http.NewRequest("GET", address, nil)
 	req.Header.Set("Authorization", "Bearer "+accessToken)
@@ -203,6 +241,38 @@ func makeSpotifyRequest(address string, accessToken string) ([]byte, error) {
 	body, err := io.ReadAll(bodyReader)
 	if err != nil {
 		fmt.Println("Error reading the response body:", err)
+		return nil, err
+	}
+
+	return body, nil
+}
+
+// makeSpotifyPostRequest - make a post request where data is the body
+func makeSpotifyPostRequest(address string, data []byte, accessToken string) ([]byte, error) {
+	req, err := http.NewRequest("POST", address, bytes.NewBuffer(data))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+
+	// Send request
+	client := http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			fmt.Println("Error reading...")
+		}
+	}(resp.Body)
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	//// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
 		return nil, err
 	}
 

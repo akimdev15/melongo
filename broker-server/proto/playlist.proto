@@ -10,6 +10,9 @@ message CreatePlaylistRequest{
 	string apiKey = 1;
 	string accessToken = 2;
 	string playlistName = 3;
+	string description = 4;
+	bool isPublic = 5;
+	string userID = 6;
 }
 
 message CreatePlaylistResponse {

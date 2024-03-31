@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-type authHandler func(http.ResponseWriter, *http.Request, string)
+type authHandler func(http.ResponseWriter, *http.Request, string, string)
 
 func middlewareAuth(handler authHandler) http.HandlerFunc {
 	// Creating a anonymous function
@@ -42,6 +42,6 @@ func middlewareAuth(handler authHandler) http.HandlerFunc {
 			respondWithError(w, 403, fmt.Sprintf("Auth error: %v", err))
 		}
 
-		handler(w, r, token.AccessToken)
+		handler(w, r, token.AccessToken, token.UserID)
 	}
 }

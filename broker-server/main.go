@@ -103,10 +103,10 @@ func handleSpotifyCallback(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusAccepted, payload)
 }
 
-func handleSubmission(w http.ResponseWriter, r *http.Request, accessToken string) {
+func handleSubmission(w http.ResponseWriter, r *http.Request, accessToken string, userID string) {
 	fmt.Println("Hit Handle Submission")
-	fmt.Printf("Access Token: %s", accessToken)
-
+	fmt.Printf("Access Token: %s\n", accessToken)
+	fmt.Printf("UserID: %s\n", userID)
 }
 
 func handleAuthorization(w http.ResponseWriter, r *http.Request) {

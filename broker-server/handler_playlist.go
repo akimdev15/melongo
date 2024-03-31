@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -12,13 +13,19 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-type CreatePlaylistPayload struct {
+type CreatePlaylistResponse struct {
 	SpotifyPlaylistID string `json:"spotifyPlaylistID"`
 	ExternalUrl       string `json:"externalUrl"`
 	Name              string `json:"name"`
 }
 
-func handleCreatePlaylist(w http.ResponseWriter, r *http.Request, accessToken string) {
+type CreatePlaylistPayload struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Public      bool   `json:"public"`
+}
+
+func handleCreatePlaylist(w http.ResponseWriter, r *http.Request, accessToken string, userID string) {
 	fmt.Println("HandleCreatePlaylist")
 
 	apiKey, err := auth.GetAPIKey(r.Header)
@@ -28,18 +35,34 @@ func handleCreatePlaylist(w http.ResponseWriter, r *http.Request, accessToken st
 		fmt.Println("Error during gRPC dial")
 		return
 	}
-	defer conn.Close()
+	defer func(conn *grpc.ClientConn) {
+		err := conn.Close()
+		if err != nil {
+
+		}
+	}(conn)
 
 	// create client
 	client := proto.NewPlaylistServiceClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	// call AuthorizeUser method in the auth service
+	var payload CreatePlaylistPayload
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		fmt.Println("Error decoding payload")
+		return
+	}
+
 	playlistResponse, err := client.CreatePlaylist(ctx, &proto.CreatePlaylistRequest{
-		ApiKey:      apiKey,
-		AccessToken: accessToken,
+		ApiKey:       apiKey,
+		AccessToken:  accessToken,
+		UserID:       userID,
+		PlaylistName: payload.Name,
+		Description:  payload.Description,
+		IsPublic:     payload.Public,
 	})
+
+	// TODO -> ERROR HERE
 	if err != nil {
 		// TODO - need to return errorJSON
 		fmt.Printf("Error in AuthorizeUser method: %v\n", err)
@@ -47,7 +70,7 @@ func handleCreatePlaylist(w http.ResponseWriter, r *http.Request, accessToken st
 	}
 	fmt.Println("Playlist Response: ", playlistResponse)
 
-	var responsePayload CreatePlaylistPayload
+	var responsePayload CreatePlaylistResponse
 	responsePayload.SpotifyPlaylistID = playlistResponse.SpotifyPlaylistID
 	responsePayload.ExternalUrl = playlistResponse.ExternalURL
 	responsePayload.Name = playlistResponse.Name
