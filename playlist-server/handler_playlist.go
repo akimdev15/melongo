@@ -9,7 +9,7 @@ import (
 )
 
 // AccessToken TODO - only for testing purpose. Should be REMOVED!!
-const AccessToken = "BQAovVOzaGoS3QgYh0JCXtqRjIZKGWfvI9DgHNlYcCOOva-hJ8RPNGG-S1G640W59HW5lFRCqfYePYZowhgPMv24Hox6h1-ClE3qOToHfH4e7TsOi4a0hiZZLS0_UbMxTWSWVl9hHltGP3Wi9yCxiwIRwDMuf_gU2EiWZPoec5jwiUpQ2v3xvkVlFvcmfbzos_DM-8ehE5PWIgBQXDnpiVcFTZmaBDPKMwc_E4yNLL9UjuzToARw4hvhMnHRvKmYJs2Gt_U6CeaSIl8Hf12TeUpXjA4h5VNMBA"
+const AccessToken = ""
 
 func getSongs() []mscraper.Song {
 	songs := mscraper.GetNewestSongsMelon("0300")
