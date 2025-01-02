@@ -2,44 +2,64 @@ package main
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/akimdev15/melongo/playlist-server/spotify"
 	"github.com/akimdev15/mscraper"
-	"net/http"
 )
 
 // AccessToken TODO - only for testing purpose. Should be REMOVED!!
-const AccessToken = "BQDTLi92KAD0GfTFEx2NgKx9_AJ98CRVOO4aCEuBT_4IiDm8dLZF71BHsL2-0-hqGGcsZF89fBXBmrmNJo_Livv-qksl7zv2qNqIs0xZQLeMYUumJn-gpY9R_4Oi3WXljEnG1V4RJLMghB8t4lvo7wKsqmiEHGyLoOrJuCxHqDR5NxmGSTUiCHtGXxW1-B5r9UPrL442Ji_1r7X2xonszCetTvgLW2_SIqSAnv2Esu1oQnl9qP7fW9rvKg224n-wX3_EmALsura-nOLiIM3TlmOECg"
+const AccessToken = "BQAovVOzaGoS3QgYh0JCXtqRjIZKGWfvI9DgHNlYcCOOva-hJ8RPNGG-S1G640W59HW5lFRCqfYePYZowhgPMv24Hox6h1-ClE3qOToHfH4e7TsOi4a0hiZZLS0_UbMxTWSWVl9hHltGP3Wi9yCxiwIRwDMuf_gU2EiWZPoec5jwiUpQ2v3xvkVlFvcmfbzos_DM-8ehE5PWIgBQXDnpiVcFTZmaBDPKMwc_E4yNLL9UjuzToARw4hvhMnHRvKmYJs2Gt_U6CeaSIl8Hf12TeUpXjA4h5VNMBA"
+
+func getSongs() []mscraper.Song {
+	songs := mscraper.GetNewestSongsMelon("0300")
+	return songs
+}
 
 func (apiCfg *apiConfig) testHandler(w http.ResponseWriter, r *http.Request) {
-
-	songs := mscraper.GetNewestSongsMelon("0300")
-
-	var searchResult spotify.TracksResponse
-	for _, song := range songs[:1] {
-		artistInfo, err := spotify.SearchArtistID(song.Artist, AccessToken)
-		// search artist id test
-		if err != nil {
-			fmt.Println("Error searching for artist ID. err: ", err)
-			respondWithError(w, 401, fmt.Sprintf("Error getting the artist ID. err: %v\n", err))
+	songs := getSongs()
+	uris := []string{}
+	for i, song := range songs {
+		if i > 5 {
+			break
 		}
-		fmt.Printf("ArtistID: %v\n", artistInfo)
-
-		searchResult, err = spotify.SearchTrack(song.Title, artistInfo.Name, AccessToken)
+		fmt.Printf("Searching for song: %s artist: %s\n", song.Title, song.Artist)
+		track, err := spotify.SearchTrack(song.Title, song.Artist, AccessToken)
 		if err != nil {
-			fmt.Println("error while getting the search result. Error: ", err)
+			fmt.Printf("Nothing found for song: %s and artist: %s\n", song.Title, song.Artist)
 		}
-
-		fmt.Printf("search result: %v\n", searchResult)
+		fmt.Println("Found track: ", track)
+		if track != nil && track.URI != "" {
+			uris = append(uris, track.URI)
+		}
 	}
 
-	playlists, err := spotify.GetUserPlaylists(AccessToken)
+	spotify.AddTrackToPlaylist("0msfdSZz5ZKXibCW6uZlvU", uris, AccessToken)
+
+	respondWithJSON(w, 200, uris)
+}
+
+func (apiCfg *apiConfig) testNewAlbumsHandler(w http.ResponseWriter, r *http.Request) {
+	// albums := mscraper.GetNewestAlbumFromMelon()
+	// tracks, err := spotify.SearchTracksFromAlbum(albums[0].Name, albums[0].Artist, AccessToken)
+
+	// This one works
+	tracks, err := spotify.SearchTracksFromAlbum("아무렇지 않게", "DK", AccessToken)
+
+	// This works but artis name is empty
+	// tracks, err := spotify.SearchTracksFromAlbum("#2024: 가장자리", "Minit", AccessToken)
+
 	if err != nil {
-		// return json error
-		respondWithError(w, 401, fmt.Sprintf("Error getting the playlists. err: %v\n", err))
+		fmt.Println("Error searching tracks: ", err)
+		return
 	}
 
-	fmt.Println("Playlists: ", playlists)
+	uris := []string{}
+	for _, track := range tracks {
+		uris = append(uris, track.URI)
+	}
 
-	respondWithJSON(w, 200, searchResult)
+	// spotify.AddTrackToPlaylist("0msfdSZz5ZKXibCW6uZlvU", uris, AccessToken)
 
+	respondWithJSON(w, 200, tracks)
 }

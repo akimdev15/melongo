@@ -75,22 +75,26 @@ func (authServer *AuthServer) AuthenticateUser(ctx context.Context, req *proto.A
 	if userToken.ExpireTime.Before(time.Now().UTC()) {
 		fmt.Println("Access-Token expired. Getting a new token...")
 		refreshToken, err := RefreshToken(userToken.RefreshToken, ctx)
-		fmt.Println("Refresh Token: ", refreshToken)
 		if err != nil {
 			fmt.Printf("Error refreshing token: %v\n", err)
 			return nil, err
 		}
 
 		// Update user token with the refresh token
-		newExpireTime := time.Now().UTC().Add(time.Duration(refreshToken.Expires_In) * time.Second)
+		newExpireTime := time.Now().UTC().Add(time.Duration(refreshToken.ExpiresIn) * time.Second)
 		userToken.AccessToken = refreshToken.AccessToken
-		fmt.Println("HERE")
+
+		// Refresh token returned from the response might be empty. In this case use the existing refresh token (According to the documentation)
+		if refreshToken.RefreshToken == "" {
+			refreshToken.RefreshToken = userToken.RefreshToken
+		}
+
 		// Asynchronously update to the DB
 		errCh := make(chan error)
 		go func() {
 			err = authServer.DB.UpdateToken(ctx, database.UpdateTokenParams{
 				AccessToken:  refreshToken.AccessToken,
-				RefreshToken: refreshToken.Refresh_Token,
+				RefreshToken: refreshToken.RefreshToken,
 				ExpireTime:   newExpireTime,
 				UpdatedAt:    time.Now(),
 				ID:           userToken.ID,
@@ -105,6 +109,7 @@ func (authServer *AuthServer) AuthenticateUser(ctx context.Context, req *proto.A
 			fmt.Printf("Error updating the user token with the refresh token. Err: %v", err)
 			return nil, err
 		}
+		fmt.Println("Successfully updated the refresh token")
 	}
 
 	res := &proto.AuthenticateResponse{
@@ -293,7 +298,8 @@ func (authServer *AuthServer) createAndSaveUser(ctx context.Context, userInfoRes
 
 }
 
-func RefreshToken(refreshToken string, ctx context.Context) (*TokenResponse, error) {
+func RefreshToken(refreshToken string, ctx context.Context) (SpotifyTokenResponse, error) {
+	fmt.Println("Refresh token: ", refreshToken)
 	// Construct the request body
 	data := url.Values{}
 	data.Set("grant_type", "refresh_token")
@@ -301,6 +307,10 @@ func RefreshToken(refreshToken string, ctx context.Context) (*TokenResponse, err
 
 	// Prepare request
 	req, err := http.NewRequestWithContext(ctx, "POST", "https://accounts.spotify.com/api/token", strings.NewReader(data.Encode()))
+	if err != nil {
+		return SpotifyTokenResponse{}, fmt.Errorf("failed to create request: %w", err)
+	}
+
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(clientID+":"+clientSecret)))
 
@@ -308,23 +318,26 @@ func RefreshToken(refreshToken string, ctx context.Context) (*TokenResponse, err
 	client := http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return SpotifyTokenResponse{}, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-
+	fmt.Println("HERE!!!, response: ", resp)
+	defer func() {
+		if resp != nil && resp.Body != nil {
+			err := resp.Body.Close()
+			if err != nil {
+				fmt.Printf("failed to close response body: %v\n", err)
+			}
 		}
-	}(resp.Body)
+	}()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		return SpotifyTokenResponse{}, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
 	//// Read response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return SpotifyTokenResponse{}, err
 	}
 
 	var tokenResponse SpotifyTokenResponse
@@ -332,15 +345,8 @@ func RefreshToken(refreshToken string, ctx context.Context) (*TokenResponse, err
 
 	if err != nil {
 		fmt.Printf("Error parsing JSON %s\n", err)
-		return nil, err
+		return SpotifyTokenResponse{}, err
 	}
 
-	// Construct the TokenResponse object
-	token := &TokenResponse{
-		AccessToken:   tokenResponse.AccessToken,
-		Expires_In:    tokenResponse.ExpiresIn,
-		Refresh_Token: tokenResponse.RefreshToken,
-	}
-
-	return token, nil
+	return tokenResponse, nil
 }

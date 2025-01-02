@@ -1,14 +1,6 @@
 ## TODO
-- Note on Auth Flow: 
-	Just for now, using a manually generated api_key when user is created in the database. This is what 
-	is being sent to the client side and client needs to include this with the subsequent requests.
-	When the request is made, it will direct to the auth-server and get the associated token for spotify. 
-	Need to check if the accessToken is valid and if not, need to request a refreshToken. 
-- TODO next: Need to map user to token and save it to the database. Also handle the case where when user access through /callabck, 
-	only save the user if they don't exist. Otherwise, just get their api key and update the valid token
-- **********
-- Connect the auth server with the playlist server so that it can go through the authorization process
-- Create a refresh token endpoint so that in case 401 error occurs while inside the playlist service
+	1. Need to prevent adding duplicate songs to the playlist 
+	2. Try to write some tests to prevent a case where a song can't be found on spotify
 
 ## Commands
 
@@ -31,3 +23,8 @@
 
 	- Make a central database server where it's job is to soeley save it to the DB using message queue (non blocking)
 		a) or maybe async grpc
+	- Note on Auth Flow:
+	  Just for now, using a manually generated api_key when user is created in the database. This is what
+	  is being sent to the client side and client needs to include this with the subsequent requests.
+	  When the request is made, it will direct to the auth-server and get the associated token for spotify.
+	  Need to check if the accessToken is valid and if not, need to request a refreshToken. 

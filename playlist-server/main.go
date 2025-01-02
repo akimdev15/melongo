@@ -49,6 +49,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /test", apiCfg.testHandler)
+	mux.HandleFunc("GET /testAlbum", apiCfg.testNewAlbumsHandler)
 	corsHandler := corsMiddleware(mux)
 
 	err = http.ListenAndServe(PORT, corsHandler)

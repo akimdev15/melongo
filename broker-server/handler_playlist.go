@@ -65,7 +65,7 @@ func handleCreatePlaylist(w http.ResponseWriter, r *http.Request, accessToken st
 	// TODO -> ERROR HERE
 	if err != nil {
 		// TODO - need to return errorJSON
-		fmt.Printf("Error in AuthorizeUser method: %v\n", err)
+		fmt.Printf("Error creating playlist: %v\n", err)
 		return
 	}
 	fmt.Println("Playlist Response: ", playlistResponse)

@@ -38,7 +38,7 @@ func middlewareAuth(handler authHandler) http.HandlerFunc {
 
 		if err != nil {
 			// TODO - need to return errorJSON
-			fmt.Printf("Error in AuthorizeUser method: %v\n", err)
+			fmt.Printf("Error in Middleware - AuthorizeUser method: %v\n", err)
 			respondWithError(w, 403, fmt.Sprintf("Auth error: %v", err))
 		}
 

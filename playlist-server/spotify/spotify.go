@@ -11,6 +11,7 @@ import (
 
 type Playlist struct {
 	Name string `json:"name"`
+	ID   string `json:"id"`
 	// Add other playlist fields you want to extract
 }
 
@@ -32,9 +33,41 @@ type Album struct {
 }
 
 type Track struct {
-	Album Album  `json:"album"`
-	URI   string `json:"uri"`
-	Name  string `json:"name"`
+	Artist string
+	URI    string `json:"uri"`
+	Name   string `json:"name"`
+}
+
+// Contains artist names in an array (in case there are more than one)
+type AlbumTrack struct {
+	Artist []struct {
+		Name string `json:"name"`
+	} `json:"artists"`
+	URI  string `json:"uri"`
+	Name string `json:"name"`
+}
+
+// SearchResponse - result of query search by title and artist
+type SearchResponse struct {
+	Tracks struct {
+		Items []struct {
+			Name    string `json:"name"`
+			Artists []struct {
+				Name string `json:"name"`
+			} `json:"artists"`
+			URI string `json:"uri"`
+		} `json:"items"`
+	} `json:"tracks"`
+}
+
+type SearchResponseAlbum struct {
+	Albums struct {
+		Items []struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+			URI  string `json:"uri"`
+		} `json:"items"`
+	} `json:"albums"`
 }
 
 // ArtistsResponse - result of artist search
@@ -43,6 +76,7 @@ type ArtistsResponse struct {
 		Items []ArtistItem `json:"items"`
 	} `json:"artists"`
 }
+
 type ArtistItem struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
@@ -56,11 +90,16 @@ type ArtistTracksResponse struct {
 	Tracks []Track `json:"tracks"`
 }
 
-// TracksResponse - result of query search (song + artist)
-type TracksResponse struct {
+// TrackResponse - result of query search (URI of a track)
+type TrackResponse struct {
 	Items struct {
 		Tracks []Track `json:"items"`
 	} `json:"tracks"`
+}
+
+// TracksResponse - result of album search by id and returns all tracks
+type AlbumTracksResponse struct {
+	Items []AlbumTrack `json:"items"`
 }
 
 type NewPlayListRequest struct {
@@ -75,6 +114,17 @@ type NewPlaylistResponse struct {
 	SpotifyPlaylistID string `json:"id"`
 	Name              string `json:"name"`
 	URI               string `json:"uri"`
+}
+
+// AddTrackRequest - request to add new track(s) to the playlist
+type AddTrackRequest struct {
+	URIs     []string `json:"uris"`
+	Position int      `json:"position"`
+}
+
+// AddTrackResponse - returns new id of the playlist
+type AddTrackResponse struct {
+	SnapshotID string `json:"snapshot_id"`
 }
 
 // GetUserPlaylists gets all the user's playlist names
@@ -128,44 +178,123 @@ func SearchArtistID(artistName string, accessToken string) (ArtistItem, error) {
 	return artist, nil
 }
 
-func SearchTracksByArtist(artistID string, accessToken string) ([]Track, error) {
-	address := fmt.Sprintf("https://api.spotify.com/v1/artists/%s/top-tracks?country=KR", artistID)
-	body, err := makeSpotifyGetRequest(address, accessToken)
-	if err != nil {
-		fmt.Println("Error making the request to the spotify with the url: ", address)
-		return nil, err
-	}
-	var tracksResponse ArtistTracksResponse
-	if err := json.Unmarshal(body, &tracksResponse); err != nil {
-		fmt.Println("Error:", err)
-		return nil, err
-	}
-
-	return tracksResponse.Tracks, nil
-}
-
 // SearchTrack looks up a music by title and artist
-func SearchTrack(title, artist, accessToken string) (TracksResponse, error) {
-	encodedTitle := url.QueryEscape(title)
-	encodedArtist := url.QueryEscape(artist)
-	address := fmt.Sprintf("https://api.spotify.com/v1/search?q=track:%s+artist:%s&type=track", encodedTitle, encodedArtist)
+// returns the Track which contains the URI of the track
+// which can be used to add to the playlist
+func SearchTrack(title, artist, accessToken string) (*Track, error) {
+	if title == "" || artist == "" || accessToken == "" {
+		return nil, fmt.Errorf("title, artist, or access token is empty")
+	}
 
-	body, err := makeSpotifyGetRequest(address, accessToken)
+	// remove any brackets in the song title
+	formattedTitle := formatTitle(title)
+
+	const spotifyAPIURL = "https://api.spotify.com/v1/search"
+
+	// Formulate the search query
+	query := fmt.Sprintf("track:%s artist:%s", formattedTitle, artist)
+
+	// URL-encode the query string
+	encodedQuery := url.QueryEscape(query)
+
+	// Construct the search URL
+	searchURL := fmt.Sprintf("%s?q=%s&type=track", spotifyAPIURL, encodedQuery)
+
+	body, err := makeSpotifyGetRequest(searchURL, accessToken)
 
 	if err != nil {
 		fmt.Println("Error making the request to the spotify")
-		return TracksResponse{}, err
+		return nil, err
 	}
 
-	// Unmarshal JSON data into TracksResponse struct
-	var response TracksResponse
-	if err := json.Unmarshal(body, &response); err != nil {
-		fmt.Println("Error:", err)
-		return TracksResponse{}, err
+	// Parse the JSON response into the struct
+	var searchResp SearchResponse
+	err = json.Unmarshal(body, &searchResp)
+	if err != nil {
+		fmt.Printf("Error parsing the JSON response for title: %s, %v\n", title, err)
+		return nil, err
 	}
 
-	fmt.Println("Successfully searched the track")
-	return response, nil
+	// Check if any tracks were found
+	if len(searchResp.Tracks.Items) == 0 {
+		return nil, fmt.Errorf("no tracks found for title: %s, artist: %s", title, artist)
+	}
+
+	// Return the URI of the first matching track
+	trackURI := searchResp.Tracks.Items[0].URI
+
+	return &Track{
+		Artist: artist,
+		Name:   formattedTitle,
+		URI:    trackURI,
+	}, nil
+}
+
+func SearchTracksFromAlbum(albumName, artistName, accessToken string) ([]AlbumTrack, error) {
+	if albumName == "" || artistName == "" || accessToken == "" {
+		return nil, fmt.Errorf("album name, artist name, or access token is empty")
+	}
+
+	// Format the album name to remove brackets (if any)
+	formattedAlbumName := formatTitle(albumName)
+
+	const spotifyAPIURL = "https://api.spotify.com/v1/search"
+
+	// Formulate the search query
+	query := fmt.Sprintf("album:%s artist:%s", formattedAlbumName, artistName)
+
+	// URL-encode the query string
+	encodedQuery := url.QueryEscape(query)
+
+	// Construct the search URL
+	searchURL := fmt.Sprintf("%s?q=%s&type=album", spotifyAPIURL, encodedQuery)
+
+	// Make the GET request to Spotify to search for albums
+	body, err := makeSpotifyGetRequest(searchURL, accessToken)
+	if err != nil {
+		return nil, fmt.Errorf("error making the request to Spotify: %v", err)
+	}
+
+	// Parse the search response
+	var searchResp SearchResponseAlbum
+	err = json.Unmarshal(body, &searchResp)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing the JSON response for album: %v", err)
+	}
+
+	// Check if any albums were found
+	if len(searchResp.Albums.Items) == 0 {
+		// TODO - For sigle album, might want to search by track since it returns the result for track but not album for some
+		return nil, fmt.Errorf("no albums found for album: %s, artist: %s", albumName, artistName)
+	}
+
+	// Get the album ID from the first result
+	albumID := searchResp.Albums.Items[0].ID
+	fmt.Println("Album ID: ", albumID)
+
+	url := fmt.Sprintf("https://api.spotify.com/v1/albums/%s/tracks", albumID)
+	body, err = makeSpotifyGetRequest(url, accessToken)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching album tracks: %v", err)
+	}
+
+	// Unmarshal the JSON response into a TracksResponse struct
+	var albumTracksResp AlbumTracksResponse
+	err = json.Unmarshal(body, &albumTracksResp)
+	if err != nil {
+		fmt.Println("Error parsing the JSON response for album tracks: ", err)
+		return nil, err
+	}
+
+	// Check if any tracks were found
+	if len(albumTracksResp.Items) == 0 {
+		return nil, fmt.Errorf("no tracks found for album: %s, artist: %s", albumName, artistName)
+	}
+
+	// TODO - Maybe convert AlbumTrack to Track by concatenating the artist names with a comma separated string
+
+	return albumTracksResp.Items, nil
+
 }
 
 // CreateNewPlaylist - creates a empty new playlist for the user
@@ -199,6 +328,36 @@ func CreateNewPlaylist(name string, description string, isPublic bool, userId st
 	}
 
 	fmt.Println("Successfully searched the track")
+	return response, nil
+}
+
+// AddTrackToPlaylist - adds trackURI which is comma separated track uris to the playlist
+// TODO - Try to prevent duplicate tracks by checking the existing playlist or maybe store something in the database
+func AddTrackToPlaylist(playlistID string, trackURI []string, accessToken string) (AddTrackResponse, error) {
+	address := fmt.Sprintf("https://api.spotify.com/v1/playlists/%s/tracks", playlistID)
+
+	addTrackRequest := AddTrackRequest{
+		URIs: trackURI,
+	}
+
+	body, err := json.Marshal(addTrackRequest)
+	if err != nil {
+		fmt.Println("Error during json.Marshal")
+		return AddTrackResponse{}, err
+	}
+
+	body, err = makeSpotifyPostRequest(address, body, accessToken)
+	if err != nil {
+		fmt.Println("Error making the request to the spotify")
+		return AddTrackResponse{}, err
+	}
+
+	var response AddTrackResponse
+	if err := json.Unmarshal(body, &response); err != nil {
+		fmt.Println("Error during AddTrackResponse. Err: ", err)
+		return AddTrackResponse{}, err
+	}
+
 	return response, nil
 }
 
@@ -250,6 +409,11 @@ func makeSpotifyGetRequest(address string, accessToken string) ([]byte, error) {
 // makeSpotifyPostRequest - make a post request where data is the body
 func makeSpotifyPostRequest(address string, data []byte, accessToken string) ([]byte, error) {
 	req, err := http.NewRequest("POST", address, bytes.NewBuffer(data))
+	if err != nil {
+		fmt.Println("Error creating the request. Error: ", err)
+		return nil, err
+	}
+
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
@@ -277,4 +441,21 @@ func makeSpotifyPostRequest(address string, data []byte, accessToken string) ([]
 	}
 
 	return body, nil
+}
+
+// formatTitle - remove everything inside the brackets
+// ex) "Cry Me A River - Justin Timberlake (Official Music Video)" -> "Cry Me A River - Justin Timberlake"
+func formatTitle(title string) string {
+	if title == "" {
+		return ""
+	}
+
+	// Find the first index of the bracket
+	idx := bytes.IndexByte([]byte(title), '(')
+	if idx == -1 {
+		return title
+	}
+
+	// Remove the bracket and the content inside
+	return title[:idx]
 }

@@ -43,12 +43,20 @@ func (playlistServer *PlaylistServer) CreatePlaylist(ctx context.Context, req *p
 
 	fmt.Println("new playlist: ", newPlaylistResponse)
 
+	res := &proto.CreatePlaylistResponse{
+		SpotifyPlaylistID: newPlaylistResponse.SpotifyPlaylistID,
+		ExternalURL:       newPlaylistResponse.URI,
+		Name:              newPlaylistResponse.Name,
+	}
+	return res, nil
+
 	// 1. Get music from melon and search them
-	//songs := mscraper.GetNewestSongsMelon("0300")
+	//songs := mscraper.GetNewestSongsMelon("0900")
 	//
+	//var URIs []string
 	//var searchResult spotify.TracksResponse
-	//for _, song := range songs {
-	//	artistInfo, err := spotify.SearchArtistID(song.Artist, AccessToken)
+	//for _, song := range songs[:1] {
+	//	artistInfo, err := spotify.SearchArtistID(song.Artist, req.AccessToken)
 	//	// search artist id test
 	//	if err != nil {
 	//		fmt.Println("Error searching for artist ID. err: ", err)
@@ -56,17 +64,21 @@ func (playlistServer *PlaylistServer) CreatePlaylist(ctx context.Context, req *p
 	//	}
 	//	fmt.Printf("ArtistID: %v\n", artistInfo)
 	//
-	//	searchResult, err = spotify.SearchTrack(song.Title, artistInfo.Name, AccessToken)
-	//	if err != nil {
+	//	searchResult, err = spotify.SearchTrack(song.Title, artistInfo.Name, req.AccessToken)
+	//	if err != nil || len(searchResult.Items.Tracks) <= 0 {
 	//		fmt.Println("error while getting the search result. Error: ", err)
+	//		continue
 	//	}
+	//
+	//	URIs = append(URIs, searchResult.Items.Tracks[0].URI)
 	//
 	//	fmt.Printf("search result: %v\n", searchResult)
 	//}
-	res := &proto.CreatePlaylistResponse{
-		SpotifyPlaylistID: "playlistID",
-		ExternalURL:       "TEST",
-		Name:              "TEST",
-	}
-	return res, nil
+	//
+	//addTrackRes, err := spotify.AddTrackToPlaylist(newPlaylistResponse.SpotifyPlaylistID, URIs, req.AccessToken)
+	//
+	//if err != nil {
+	//	fmt.Println("Error adding tracks to the playlist")
+	//}
+
 }
