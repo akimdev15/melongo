@@ -1,7 +1,7 @@
 github.com/PuerkitoBio/goquery v1.8.1 h1:uQxhNlArOIdbrH1tr0UXwdVFgDcZDrZVdcpygAcwmWM=
 github.com/PuerkitoBio/goquery v1.8.1/go.mod h1:Q8ICL1kNUJ2sXGoAhPGUdYDJvgQgHzJsnnd3H7Ho5jQ=
-github.com/akimdev15/mscraper v0.0.0-20240228031834-f9cdbb0b6f29 h1:sSb3Ab0Fcmy3yxcAhTLv9R+yIpS4rTxpdPWNp6f9un8=
-github.com/akimdev15/mscraper v0.0.0-20240228031834-f9cdbb0b6f29/go.mod h1:Qf1Z+zWVP7aYdd6VVYJTA5RstMF11EqAz4p+B0bprME=
+github.com/akimdev15/mscraper v0.0.0-20250103020739-9fb5d8a4862a h1:nt9EYqNlQDCExxKWH8PzvLIsd9HMY9D82oT2P+HfAxQ=
+github.com/akimdev15/mscraper v0.0.0-20250103020739-9fb5d8a4862a/go.mod h1:Qf1Z+zWVP7aYdd6VVYJTA5RstMF11EqAz4p+B0bprME=
 github.com/andybalholm/cascadia v1.3.1/go.mod h1:R4bJ1UQfqADjvDa4P6HZHLh/3OxWWEqc0Sk8XGwHqvA=
 github.com/andybalholm/cascadia v1.3.2 h1:3Xi6Dw5lHF15JtdcmAHD3i1+T8plmv7BQ/nsViSLyss=
 github.com/andybalholm/cascadia v1.3.2/go.mod h1:7gtRlve5FxPPgIgX36uWBX58OdBsSS6lUvCFb+h7KvU=

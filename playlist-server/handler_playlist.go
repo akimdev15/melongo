@@ -16,25 +16,25 @@ func getSongs() []mscraper.Song {
 	return songs
 }
 
+func getMelonToop100() []mscraper.Song {
+	songs := mscraper.GetMelonTop100Songs()
+	return songs
+}
+
 func (apiCfg *apiConfig) testHandler(w http.ResponseWriter, r *http.Request) {
-	songs := getSongs()
+	songs := getMelonToop100()
 	uris := []string{}
-	for i, song := range songs {
-		if i > 5 {
-			break
-		}
-		fmt.Printf("Searching for song: %s artist: %s\n", song.Title, song.Artist)
+	for _, song := range songs {
 		track, err := spotify.SearchTrack(song.Title, song.Artist, AccessToken)
 		if err != nil {
 			fmt.Printf("Nothing found for song: %s and artist: %s\n", song.Title, song.Artist)
 		}
-		fmt.Println("Found track: ", track)
 		if track != nil && track.URI != "" {
 			uris = append(uris, track.URI)
 		}
 	}
 
-	spotify.AddTrackToPlaylist("0msfdSZz5ZKXibCW6uZlvU", uris, AccessToken)
+	// spotify.AddTrackToPlaylist("2XCwgZm2ornbTdEvaDT1h9", uris, AccessToken)
 
 	respondWithJSON(w, 200, uris)
 }

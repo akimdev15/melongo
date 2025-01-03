@@ -3,7 +3,7 @@ module github.com/akimdev15/melongo/playlist-server
 go 1.22.1
 
 require (
-	github.com/akimdev15/mscraper v0.0.0-20240228031834-f9cdbb0b6f29
+	github.com/akimdev15/mscraper v0.0.0-20250103020739-9fb5d8a4862a
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
 	google.golang.org/grpc v1.62.1

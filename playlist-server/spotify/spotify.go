@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
+	"unicode"
 )
 
 type Playlist struct {
@@ -189,6 +191,9 @@ func SearchTrack(title, artist, accessToken string) (*Track, error) {
 	// remove any brackets in the song title
 	formattedTitle := formatTitle(title)
 
+	// get english artist name
+	artist = formatArtistName(artist)
+
 	const spotifyAPIURL = "https://api.spotify.com/v1/search"
 
 	// Formulate the search query
@@ -237,6 +242,10 @@ func SearchTracksFromAlbum(albumName, artistName, accessToken string) ([]AlbumTr
 
 	// Format the album name to remove brackets (if any)
 	formattedAlbumName := formatTitle(albumName)
+
+	// TODO - test if this still works (Otherwise remove it)
+	// get english artist name
+	artistName = formatArtistName(artistName)
 
 	const spotifyAPIURL = "https://api.spotify.com/v1/search"
 
@@ -458,4 +467,56 @@ func formatTitle(title string) string {
 
 	// Remove the bracket and the content inside
 	return title[:idx]
+}
+
+// formatArtistName extracts the English name from the artist string
+func formatArtistName(artist string) string {
+	if artist == "" {
+		return ""
+	}
+
+	// 1. Check if the artist name contains brackets (in case (여자)아이들)
+	idx := bytes.IndexByte([]byte(artist), '(')
+	if idx < 1 {
+		return artist
+	}
+
+	// 2. Split the artist name to two parts by the first bracket
+	parts := strings.SplitN(artist, "(", 2)
+
+	if len(parts) < 2 {
+		fmt.Println("Parts: ", parts)
+		return artist
+	}
+
+	// 3. Remove the space at the end of the first part
+	firstPart := strings.TrimSpace(parts[0])
+
+	// 4. Remove the last brakcet at the end of the second part
+	secondPart := strings.TrimSuffix(parts[1], ")")
+
+	if containsEnglish(secondPart) {
+		return secondPart
+	}
+	return firstPart
+}
+
+// containsEnglish checks if a string contains any English characters
+func containsEnglish(s string) bool {
+	for _, r := range s {
+		if unicode.Is(unicode.Latin, r) {
+			return true
+		}
+	}
+	return false
+}
+
+// containsKorean checks if a string contains any Korean characters
+func containsKorean(s string) bool {
+	for _, r := range s {
+		if unicode.Is(unicode.Hangul, r) {
+			return true
+		}
+	}
+	return false
 }
