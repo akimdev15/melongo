@@ -11,56 +11,67 @@ import (
 )
 
 const createTrack = `-- name: CreateTrack :one
-INSERT INTO tracks (id, name, artist, spotify_id, created_at)
+INSERT INTO tracks (rank, title, artist, uri, date)
 VALUES ($1, $2, $3, $4, $5)
-	RETURNING id, name, artist, spotify_id, created_at
+	RETURNING rank, title, artist, uri, date
 `
 
 type CreateTrackParams struct {
-	ID        int32
-	Name      string
-	Artist    string
-	SpotifyID string
-	CreatedAt time.Time
+	Rank   int32
+	Title  string
+	Artist string
+	Uri    string
+	Date   time.Time
 }
 
 func (q *Queries) CreateTrack(ctx context.Context, arg CreateTrackParams) (Track, error) {
 	row := q.db.QueryRowContext(ctx, createTrack,
-		arg.ID,
-		arg.Name,
+		arg.Rank,
+		arg.Title,
 		arg.Artist,
-		arg.SpotifyID,
-		arg.CreatedAt,
+		arg.Uri,
+		arg.Date,
 	)
 	var i Track
 	err := row.Scan(
-		&i.ID,
-		&i.Name,
+		&i.Rank,
+		&i.Title,
 		&i.Artist,
-		&i.SpotifyID,
-		&i.CreatedAt,
+		&i.Uri,
+		&i.Date,
 	)
 	return i, err
 }
 
-const getTrackByNameAndArtist = `-- name: GetTrackByNameAndArtist :one
-SELECT id, name, artist, spotify_id, created_at FROM tracks WHERE name = $1 and artist = $2
+const getTracksByDate = `-- name: GetTracksByDate :many
+SELECT rank, title, artist, uri, date FROM tracks WHERE date = $1
 `
 
-type GetTrackByNameAndArtistParams struct {
-	Name   string
-	Artist string
-}
-
-func (q *Queries) GetTrackByNameAndArtist(ctx context.Context, arg GetTrackByNameAndArtistParams) (Track, error) {
-	row := q.db.QueryRowContext(ctx, getTrackByNameAndArtist, arg.Name, arg.Artist)
-	var i Track
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Artist,
-		&i.SpotifyID,
-		&i.CreatedAt,
-	)
-	return i, err
+func (q *Queries) GetTracksByDate(ctx context.Context, date time.Time) ([]Track, error) {
+	rows, err := q.db.QueryContext(ctx, getTracksByDate, date)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Track
+	for rows.Next() {
+		var i Track
+		if err := rows.Scan(
+			&i.Rank,
+			&i.Title,
+			&i.Artist,
+			&i.Uri,
+			&i.Date,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

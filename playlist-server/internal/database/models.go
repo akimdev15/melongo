@@ -9,9 +9,9 @@ import (
 )
 
 type Track struct {
-	ID        int32
-	Name      string
-	Artist    string
-	SpotifyID string
-	CreatedAt time.Time
+	Rank   int32
+	Title  string
+	Artist string
+	Uri    string
+	Date   time.Time
 }

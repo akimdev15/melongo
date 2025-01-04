@@ -25,6 +25,14 @@ type CreatePlaylistPayload struct {
 	Public      bool   `json:"public"`
 }
 
+type MelonTop100Request struct {
+	PlaylistID string `json:"playlistID"`
+}
+
+type MelonTop100Response struct {
+	Status string `json:"status"`
+}
+
 func handleCreatePlaylist(w http.ResponseWriter, r *http.Request, accessToken string, userID string) {
 	fmt.Println("HandleCreatePlaylist")
 
@@ -74,6 +82,100 @@ func handleCreatePlaylist(w http.ResponseWriter, r *http.Request, accessToken st
 	responsePayload.SpotifyPlaylistID = playlistResponse.SpotifyPlaylistID
 	responsePayload.ExternalUrl = playlistResponse.ExternalURL
 	responsePayload.Name = playlistResponse.Name
+
+	err = writeJSON(w, http.StatusOK, responsePayload)
+	if err != nil {
+		fmt.Println("Error writing JSON")
+		return
+	}
+}
+
+func handleMelonTop100(w http.ResponseWriter, r *http.Request, accessToken string, userID string) {
+	fmt.Println("Hit HandleMelonTop100")
+
+	apiKey, err := auth.GetAPIKey(r.Header)
+	// connect to server
+	conn, err := grpc.Dial("localhost:50002", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	if err != nil {
+		fmt.Println("Error during gRPC dial")
+		return
+	}
+	defer func(conn *grpc.ClientConn) {
+		err := conn.Close()
+		if err != nil {
+
+		}
+	}(conn)
+
+	// create client
+	client := proto.NewPlaylistServiceClient(conn)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	var payload MelonTop100Request
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		fmt.Println("Error decoding payload")
+		return
+	}
+
+	response, err := client.CreateMelonTop100(ctx, &proto.CreateMelonTop100Request{
+		ApiKey:      apiKey,
+		AccessToken: accessToken,
+		UserID:      userID,
+		PlaylistID:  payload.PlaylistID,
+	})
+
+	if err != nil {
+		// TODO - need to return errorJSON
+		fmt.Printf("Error creating playlist: %v\n", err)
+		return
+	}
+	fmt.Println("Playlist Response: ", response)
+
+	var responsePayload MelonTop100Response
+	responsePayload.Status = response.Status
+
+	err = writeJSON(w, http.StatusOK, responsePayload)
+	if err != nil {
+		fmt.Println("Error writing JSON")
+		return
+	}
+}
+
+func handleSaveMelonTop100DB(w http.ResponseWriter, r *http.Request, accessToken string, userID string) {
+	fmt.Println("Hit HandleSaveMelonTop100")
+
+	apiKey, err := auth.GetAPIKey(r.Header)
+	// connect to server
+	conn, err := grpc.Dial("localhost:50002", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	if err != nil {
+		fmt.Println("Error during gRPC dial")
+		return
+	}
+	defer func(conn *grpc.ClientConn) {
+		err := conn.Close()
+		if err != nil {
+
+		}
+	}(conn)
+
+	// create client
+	client := proto.NewPlaylistServiceClient(conn)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	response, err := client.SaveMelonTop100DB(ctx, &proto.SaveMelonTop100DBRequest{
+		ApiKey:      apiKey,
+		AccessToken: accessToken,
+	})
+
+	if err != nil {
+		fmt.Printf("Error in handleSaveMelonTop100DB: %v\n", err)
+		return
+	}
+
+	var responsePayload MelonTop100Response
+	responsePayload.Status = response.Status
 
 	err = writeJSON(w, http.StatusOK, responsePayload)
 	if err != nil {

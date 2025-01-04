@@ -35,6 +35,8 @@ func main() {
 	mux.HandleFunc("GET /callback", handleSpotifyCallback)
 	mux.HandleFunc("POST /handle", middlewareAuth(handleSubmission))
 	mux.HandleFunc("POST /createPlaylist", middlewareAuth(handleCreatePlaylist))
+	mux.HandleFunc("POST /melonTop100/create", middlewareAuth(handleMelonTop100))
+	mux.HandleFunc("POST /melonTop100/save", middlewareAuth(handleSaveMelonTop100DB))
 
 	corsHandler := corsMiddleware(mux)
 

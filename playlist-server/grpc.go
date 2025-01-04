@@ -3,9 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/akimdev15/melongo/playlist-server/spotify"
 	"log"
 	"net"
+	"sync"
+	"time"
+
+	"github.com/akimdev15/melongo/playlist-server/spotify"
+	"github.com/akimdev15/mscraper"
 
 	"github.com/akimdev15/melongo/playlist-server/internal/database"
 	"github.com/akimdev15/melongo/playlist-server/proto"
@@ -17,6 +21,15 @@ const gRPCPORT = "50002"
 type PlaylistServer struct {
 	proto.UnimplementedPlaylistServiceServer
 	DB *database.Queries
+}
+
+// SongDB is a struct to store song information in the database
+type SongDB struct {
+	Rank   int32
+	Title  string
+	Artist string
+	URI    string
+	Date   time.Time
 }
 
 func (apiCfg *apiConfig) grpcListen() {
@@ -50,35 +63,129 @@ func (playlistServer *PlaylistServer) CreatePlaylist(ctx context.Context, req *p
 	}
 	return res, nil
 
-	// 1. Get music from melon and search them
-	//songs := mscraper.GetNewestSongsMelon("0900")
-	//
-	//var URIs []string
-	//var searchResult spotify.TracksResponse
-	//for _, song := range songs[:1] {
-	//	artistInfo, err := spotify.SearchArtistID(song.Artist, req.AccessToken)
-	//	// search artist id test
-	//	if err != nil {
-	//		fmt.Println("Error searching for artist ID. err: ", err)
-	//		return nil, err
-	//	}
-	//	fmt.Printf("ArtistID: %v\n", artistInfo)
-	//
-	//	searchResult, err = spotify.SearchTrack(song.Title, artistInfo.Name, req.AccessToken)
-	//	if err != nil || len(searchResult.Items.Tracks) <= 0 {
-	//		fmt.Println("error while getting the search result. Error: ", err)
-	//		continue
-	//	}
-	//
-	//	URIs = append(URIs, searchResult.Items.Tracks[0].URI)
-	//
-	//	fmt.Printf("search result: %v\n", searchResult)
-	//}
-	//
-	//addTrackRes, err := spotify.AddTrackToPlaylist(newPlaylistResponse.SpotifyPlaylistID, URIs, req.AccessToken)
-	//
-	//if err != nil {
-	//	fmt.Println("Error adding tracks to the playlist")
-	//}
+}
 
+func (PlaylistServer *PlaylistServer) CreateMelonTop100(ctx context.Context, req *proto.CreateMelonTop100Request) (*proto.CreateMelonTop100Response, error) {
+	// TODO - need to use cache (takes too long)
+	songs := mscraper.GetMelonTop100Songs()
+
+	var wg sync.WaitGroup
+	uriChan := make(chan string, len(songs))
+
+	for _, song := range songs {
+		wg.Add(1)
+		go func(song mscraper.Song) {
+			defer wg.Done()
+			track, err := spotify.SearchTrack(song.Title, song.Artist, req.AccessToken)
+			if err != nil {
+				// TODO - should collect the missed tracks in chan and add these info to DB or something
+				fmt.Printf("Nothing found for song: %s and artist: %s\n", song.Title, song.Artist)
+				return
+			}
+			if track != nil && track.URI != "" {
+				uriChan <- track.URI
+			}
+		}(song)
+	}
+
+	wg.Wait()
+	close(uriChan)
+
+	// Collect URIs from the channel
+	var uris []string
+	for uri := range uriChan {
+		uris = append(uris, uri)
+	}
+
+	// Return the response before adding tracks to the playlist
+	response := &proto.CreateMelonTop100Response{
+		Status: fmt.Sprintf("Added %d tracks and missed %d tracks", len(uris), len(songs)-len(uris)),
+	}
+
+	// Add tracks to the playlist after sending the response to reduce time
+	go func() {
+		_, err := spotify.AddTrackToPlaylist(req.PlaylistID, uris, req.AccessToken)
+		if err != nil {
+			fmt.Println("Error adding tracks to playlist: ", err)
+		}
+	}()
+
+	return response, nil
+}
+
+func (PlaylistServer *PlaylistServer) SaveMelonTop100DB(ctx context.Context, req *proto.SaveMelonTop100DBRequest) (*proto.SaveMelonTop100DBResponse, error) {
+	// get today's date in the format of "YYYY-MM-DD"
+	date := getKST()
+
+	go PlaylistServer.searchTracksAndSaveToDB(date, req.AccessToken)
+
+	response := &proto.SaveMelonTop100DBResponse{
+		Status: fmt.Sprintf("Saving top 100 melon tracks for the date: %s", date),
+	}
+
+	return response, nil
+}
+
+// ------------------ Helper Functions ------------------
+
+func (PlaylistServer *PlaylistServer) searchTracksAndSaveToDB(date time.Time, accessToken string) {
+	songs := mscraper.GetMelonTop100Songs()
+
+	var wg sync.WaitGroup
+	songChan := make(chan SongDB, len(songs))
+
+	// Make the db insert non-blocking
+	// TODO - Find a way to do bulk insert
+	go func() {
+		for songDB := range songChan {
+			_, err := PlaylistServer.DB.CreateTrack(context.Background(), database.CreateTrackParams{
+				Rank:   songDB.Rank,
+				Title:  songDB.Title,
+				Artist: songDB.Artist,
+				Uri:    songDB.URI,
+				Date:   songDB.Date,
+			})
+
+			if err != nil {
+				fmt.Printf("Error saving song to DB: %v. Error: %v", songDB, err)
+				return
+			}
+		}
+	}()
+
+	// Search tracks
+	for i, song := range songs {
+		wg.Add(1)
+		go func(song mscraper.Song, i int) {
+			defer wg.Done()
+			track, err := spotify.SearchTrack(song.Title, song.Artist, accessToken)
+			if err != nil {
+				// TODO - should collect the missed tracks in chan and add these info to DB or something
+				fmt.Printf("Nothing found for song: %s and artist: %s\n", song.Title, song.Artist)
+				return
+			}
+			if track != nil && track.URI != "" {
+				songChan <- SongDB{
+					Rank:   int32(i + 1),
+					Title:  track.Name,
+					Artist: track.Artist,
+					URI:    track.URI,
+					Date:   date,
+				}
+			}
+		}(song, i)
+	}
+
+	wg.Wait()
+	close(songChan)
+}
+
+// getKST returns the current date in KST timezone
+// do date.Format("2006-01-02") to get the date in the format of "YYYY-MM-DD"
+func getKST() time.Time {
+	loc, err := time.LoadLocation("Asia/Seoul")
+	if err != nil {
+		return time.Time{}
+	}
+	return time.Now().In(loc)
 }

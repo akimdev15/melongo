@@ -170,6 +170,226 @@ func (x *CreatePlaylistResponse) GetName() string {
 	return ""
 }
 
+type CreateMelonTop100Request struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	ApiKey      string `protobuf:"bytes,1,opt,name=apiKey,proto3" json:"apiKey,omitempty"`
+	AccessToken string `protobuf:"bytes,2,opt,name=accessToken,proto3" json:"accessToken,omitempty"`
+	UserID      string `protobuf:"bytes,3,opt,name=userID,proto3" json:"userID,omitempty"`
+	PlaylistID  string `protobuf:"bytes,4,opt,name=playlistID,proto3" json:"playlistID,omitempty"`
+}
+
+func (x *CreateMelonTop100Request) Reset() {
+	*x = CreateMelonTop100Request{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_playlist_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CreateMelonTop100Request) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateMelonTop100Request) ProtoMessage() {}
+
+func (x *CreateMelonTop100Request) ProtoReflect() protoreflect.Message {
+	mi := &file_playlist_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateMelonTop100Request.ProtoReflect.Descriptor instead.
+func (*CreateMelonTop100Request) Descriptor() ([]byte, []int) {
+	return file_playlist_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *CreateMelonTop100Request) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *CreateMelonTop100Request) GetAccessToken() string {
+	if x != nil {
+		return x.AccessToken
+	}
+	return ""
+}
+
+func (x *CreateMelonTop100Request) GetUserID() string {
+	if x != nil {
+		return x.UserID
+	}
+	return ""
+}
+
+func (x *CreateMelonTop100Request) GetPlaylistID() string {
+	if x != nil {
+		return x.PlaylistID
+	}
+	return ""
+}
+
+type CreateMelonTop100Response struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Status string `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+}
+
+func (x *CreateMelonTop100Response) Reset() {
+	*x = CreateMelonTop100Response{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_playlist_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CreateMelonTop100Response) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateMelonTop100Response) ProtoMessage() {}
+
+func (x *CreateMelonTop100Response) ProtoReflect() protoreflect.Message {
+	mi := &file_playlist_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateMelonTop100Response.ProtoReflect.Descriptor instead.
+func (*CreateMelonTop100Response) Descriptor() ([]byte, []int) {
+	return file_playlist_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *CreateMelonTop100Response) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+type SaveMelonTop100DBRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	ApiKey      string `protobuf:"bytes,1,opt,name=apiKey,proto3" json:"apiKey,omitempty"`
+	AccessToken string `protobuf:"bytes,2,opt,name=accessToken,proto3" json:"accessToken,omitempty"`
+}
+
+func (x *SaveMelonTop100DBRequest) Reset() {
+	*x = SaveMelonTop100DBRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_playlist_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SaveMelonTop100DBRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SaveMelonTop100DBRequest) ProtoMessage() {}
+
+func (x *SaveMelonTop100DBRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_playlist_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SaveMelonTop100DBRequest.ProtoReflect.Descriptor instead.
+func (*SaveMelonTop100DBRequest) Descriptor() ([]byte, []int) {
+	return file_playlist_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *SaveMelonTop100DBRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *SaveMelonTop100DBRequest) GetAccessToken() string {
+	if x != nil {
+		return x.AccessToken
+	}
+	return ""
+}
+
+type SaveMelonTop100DBResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Status string `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+}
+
+func (x *SaveMelonTop100DBResponse) Reset() {
+	*x = SaveMelonTop100DBResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_playlist_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SaveMelonTop100DBResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SaveMelonTop100DBResponse) ProtoMessage() {}
+
+func (x *SaveMelonTop100DBResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_playlist_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SaveMelonTop100DBResponse.ProtoReflect.Descriptor instead.
+func (*SaveMelonTop100DBResponse) Descriptor() ([]byte, []int) {
+	return file_playlist_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *SaveMelonTop100DBResponse) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
 var File_playlist_proto protoreflect.FileDescriptor
 
 var file_playlist_proto_rawDesc = []byte{
@@ -195,12 +415,44 @@ var file_playlist_proto_rawDesc = []byte{
 	0x0b, 0x65, 0x78, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x55, 0x52, 0x4c, 0x18, 0x02, 0x20, 0x01,
 	0x28, 0x09, 0x52, 0x0b, 0x65, 0x78, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x55, 0x52, 0x4c, 0x12,
 	0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e,
-	0x61, 0x6d, 0x65, 0x32, 0x60, 0x0a, 0x0f, 0x50, 0x6c, 0x61, 0x79, 0x6c, 0x69, 0x73, 0x74, 0x53,
+	0x61, 0x6d, 0x65, 0x22, 0x8c, 0x01, 0x0a, 0x18, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x4d, 0x65,
+	0x6c, 0x6f, 0x6e, 0x54, 0x6f, 0x70, 0x31, 0x30, 0x30, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x12, 0x16, 0x0a, 0x06, 0x61, 0x70, 0x69, 0x4b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x06, 0x61, 0x70, 0x69, 0x4b, 0x65, 0x79, 0x12, 0x20, 0x0a, 0x0b, 0x61, 0x63, 0x63, 0x65,
+	0x73, 0x73, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0b, 0x61,
+	0x63, 0x63, 0x65, 0x73, 0x73, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x12, 0x16, 0x0a, 0x06, 0x75, 0x73,
+	0x65, 0x72, 0x49, 0x44, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x75, 0x73, 0x65, 0x72,
+	0x49, 0x44, 0x12, 0x1e, 0x0a, 0x0a, 0x70, 0x6c, 0x61, 0x79, 0x6c, 0x69, 0x73, 0x74, 0x49, 0x44,
+	0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x70, 0x6c, 0x61, 0x79, 0x6c, 0x69, 0x73, 0x74,
+	0x49, 0x44, 0x22, 0x33, 0x0a, 0x19, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x4d, 0x65, 0x6c, 0x6f,
+	0x6e, 0x54, 0x6f, 0x70, 0x31, 0x30, 0x30, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12,
+	0x16, 0x0a, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x22, 0x54, 0x0a, 0x18, 0x53, 0x61, 0x76, 0x65, 0x4d,
+	0x65, 0x6c, 0x6f, 0x6e, 0x54, 0x6f, 0x70, 0x31, 0x30, 0x30, 0x44, 0x42, 0x52, 0x65, 0x71, 0x75,
+	0x65, 0x73, 0x74, 0x12, 0x16, 0x0a, 0x06, 0x61, 0x70, 0x69, 0x4b, 0x65, 0x79, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x06, 0x61, 0x70, 0x69, 0x4b, 0x65, 0x79, 0x12, 0x20, 0x0a, 0x0b, 0x61,
+	0x63, 0x63, 0x65, 0x73, 0x73, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x0b, 0x61, 0x63, 0x63, 0x65, 0x73, 0x73, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x22, 0x33, 0x0a,
+	0x19, 0x53, 0x61, 0x76, 0x65, 0x4d, 0x65, 0x6c, 0x6f, 0x6e, 0x54, 0x6f, 0x70, 0x31, 0x30, 0x30,
+	0x44, 0x42, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x73, 0x74,
+	0x61, 0x74, 0x75, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x73, 0x74, 0x61, 0x74,
+	0x75, 0x73, 0x32, 0x90, 0x02, 0x0a, 0x0f, 0x50, 0x6c, 0x61, 0x79, 0x6c, 0x69, 0x73, 0x74, 0x53,
 	0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x4d, 0x0a, 0x0e, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65,
 	0x50, 0x6c, 0x61, 0x79, 0x6c, 0x69, 0x73, 0x74, 0x12, 0x1c, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f,
 	0x2e, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x50, 0x6c, 0x61, 0x79, 0x6c, 0x69, 0x73, 0x74, 0x52,
 	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1d, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x43,
 	0x72, 0x65, 0x61, 0x74, 0x65, 0x50, 0x6c, 0x61, 0x79, 0x6c, 0x69, 0x73, 0x74, 0x52, 0x65, 0x73,
+	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x56, 0x0a, 0x11, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x4d,
+	0x65, 0x6c, 0x6f, 0x6e, 0x54, 0x6f, 0x70, 0x31, 0x30, 0x30, 0x12, 0x1f, 0x2e, 0x70, 0x72, 0x6f,
+	0x74, 0x6f, 0x2e, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x4d, 0x65, 0x6c, 0x6f, 0x6e, 0x54, 0x6f,
+	0x70, 0x31, 0x30, 0x30, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x20, 0x2e, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x2e, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x4d, 0x65, 0x6c, 0x6f, 0x6e, 0x54,
+	0x6f, 0x70, 0x31, 0x30, 0x30, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x56, 0x0a,
+	0x11, 0x53, 0x61, 0x76, 0x65, 0x4d, 0x65, 0x6c, 0x6f, 0x6e, 0x54, 0x6f, 0x70, 0x31, 0x30, 0x30,
+	0x44, 0x42, 0x12, 0x1f, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x53, 0x61, 0x76, 0x65, 0x4d,
+	0x65, 0x6c, 0x6f, 0x6e, 0x54, 0x6f, 0x70, 0x31, 0x30, 0x30, 0x44, 0x42, 0x52, 0x65, 0x71, 0x75,
+	0x65, 0x73, 0x74, 0x1a, 0x20, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x53, 0x61, 0x76, 0x65,
+	0x4d, 0x65, 0x6c, 0x6f, 0x6e, 0x54, 0x6f, 0x70, 0x31, 0x30, 0x30, 0x44, 0x42, 0x52, 0x65, 0x73,
 	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x42, 0x0a, 0x5a, 0x08, 0x2e, 0x2e, 0x2f, 0x70, 0x72, 0x6f, 0x74,
 	0x6f, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
@@ -217,16 +469,24 @@ func file_playlist_proto_rawDescGZIP() []byte {
 	return file_playlist_proto_rawDescData
 }
 
-var file_playlist_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_playlist_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_playlist_proto_goTypes = []interface{}{
-	(*CreatePlaylistRequest)(nil),  // 0: proto.CreatePlaylistRequest
-	(*CreatePlaylistResponse)(nil), // 1: proto.CreatePlaylistResponse
+	(*CreatePlaylistRequest)(nil),     // 0: proto.CreatePlaylistRequest
+	(*CreatePlaylistResponse)(nil),    // 1: proto.CreatePlaylistResponse
+	(*CreateMelonTop100Request)(nil),  // 2: proto.CreateMelonTop100Request
+	(*CreateMelonTop100Response)(nil), // 3: proto.CreateMelonTop100Response
+	(*SaveMelonTop100DBRequest)(nil),  // 4: proto.SaveMelonTop100DBRequest
+	(*SaveMelonTop100DBResponse)(nil), // 5: proto.SaveMelonTop100DBResponse
 }
 var file_playlist_proto_depIdxs = []int32{
 	0, // 0: proto.PlaylistService.CreatePlaylist:input_type -> proto.CreatePlaylistRequest
-	1, // 1: proto.PlaylistService.CreatePlaylist:output_type -> proto.CreatePlaylistResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	2, // 1: proto.PlaylistService.CreateMelonTop100:input_type -> proto.CreateMelonTop100Request
+	4, // 2: proto.PlaylistService.SaveMelonTop100DB:input_type -> proto.SaveMelonTop100DBRequest
+	1, // 3: proto.PlaylistService.CreatePlaylist:output_type -> proto.CreatePlaylistResponse
+	3, // 4: proto.PlaylistService.CreateMelonTop100:output_type -> proto.CreateMelonTop100Response
+	5, // 5: proto.PlaylistService.SaveMelonTop100DB:output_type -> proto.SaveMelonTop100DBResponse
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -262,6 +522,54 @@ func file_playlist_proto_init() {
 				return nil
 			}
 		}
+		file_playlist_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CreateMelonTop100Request); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_playlist_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CreateMelonTop100Response); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_playlist_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SaveMelonTop100DBRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_playlist_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SaveMelonTop100DBResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -269,7 +577,7 @@ func file_playlist_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_playlist_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

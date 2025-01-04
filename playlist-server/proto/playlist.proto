@@ -21,6 +21,28 @@ message CreatePlaylistResponse {
 	string name = 3;
 }
 
+message CreateMelonTop100Request {
+	string apiKey = 1;
+	string accessToken = 2;
+	string userID = 3;
+	string playlistID = 4;
+}
+
+message CreateMelonTop100Response {
+	string status = 1;
+}
+
+message SaveMelonTop100DBRequest {
+	string apiKey = 1;
+	string accessToken = 2;
+}
+
+message SaveMelonTop100DBResponse {
+	string status = 1;
+}
+
 service PlaylistService {
 	rpc CreatePlaylist(CreatePlaylistRequest) returns (CreatePlaylistResponse);
+	rpc CreateMelonTop100(CreateMelonTop100Request) returns (CreateMelonTop100Response);
+	rpc SaveMelonTop100DB(SaveMelonTop100DBRequest) returns (SaveMelonTop100DBResponse);
 }

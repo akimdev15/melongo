@@ -19,7 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	PlaylistService_CreatePlaylist_FullMethodName = "/proto.PlaylistService/CreatePlaylist"
+	PlaylistService_CreatePlaylist_FullMethodName    = "/proto.PlaylistService/CreatePlaylist"
+	PlaylistService_CreateMelonTop100_FullMethodName = "/proto.PlaylistService/CreateMelonTop100"
+	PlaylistService_SaveMelonTop100DB_FullMethodName = "/proto.PlaylistService/SaveMelonTop100DB"
 )
 
 // PlaylistServiceClient is the client API for PlaylistService service.
@@ -27,6 +29,8 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PlaylistServiceClient interface {
 	CreatePlaylist(ctx context.Context, in *CreatePlaylistRequest, opts ...grpc.CallOption) (*CreatePlaylistResponse, error)
+	CreateMelonTop100(ctx context.Context, in *CreateMelonTop100Request, opts ...grpc.CallOption) (*CreateMelonTop100Response, error)
+	SaveMelonTop100DB(ctx context.Context, in *SaveMelonTop100DBRequest, opts ...grpc.CallOption) (*SaveMelonTop100DBResponse, error)
 }
 
 type playlistServiceClient struct {
@@ -46,11 +50,31 @@ func (c *playlistServiceClient) CreatePlaylist(ctx context.Context, in *CreatePl
 	return out, nil
 }
 
+func (c *playlistServiceClient) CreateMelonTop100(ctx context.Context, in *CreateMelonTop100Request, opts ...grpc.CallOption) (*CreateMelonTop100Response, error) {
+	out := new(CreateMelonTop100Response)
+	err := c.cc.Invoke(ctx, PlaylistService_CreateMelonTop100_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *playlistServiceClient) SaveMelonTop100DB(ctx context.Context, in *SaveMelonTop100DBRequest, opts ...grpc.CallOption) (*SaveMelonTop100DBResponse, error) {
+	out := new(SaveMelonTop100DBResponse)
+	err := c.cc.Invoke(ctx, PlaylistService_SaveMelonTop100DB_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PlaylistServiceServer is the server API for PlaylistService service.
 // All implementations must embed UnimplementedPlaylistServiceServer
 // for forward compatibility
 type PlaylistServiceServer interface {
 	CreatePlaylist(context.Context, *CreatePlaylistRequest) (*CreatePlaylistResponse, error)
+	CreateMelonTop100(context.Context, *CreateMelonTop100Request) (*CreateMelonTop100Response, error)
+	SaveMelonTop100DB(context.Context, *SaveMelonTop100DBRequest) (*SaveMelonTop100DBResponse, error)
 	mustEmbedUnimplementedPlaylistServiceServer()
 }
 
@@ -60,6 +84,12 @@ type UnimplementedPlaylistServiceServer struct {
 
 func (UnimplementedPlaylistServiceServer) CreatePlaylist(context.Context, *CreatePlaylistRequest) (*CreatePlaylistResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreatePlaylist not implemented")
+}
+func (UnimplementedPlaylistServiceServer) CreateMelonTop100(context.Context, *CreateMelonTop100Request) (*CreateMelonTop100Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateMelonTop100 not implemented")
+}
+func (UnimplementedPlaylistServiceServer) SaveMelonTop100DB(context.Context, *SaveMelonTop100DBRequest) (*SaveMelonTop100DBResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SaveMelonTop100DB not implemented")
 }
 func (UnimplementedPlaylistServiceServer) mustEmbedUnimplementedPlaylistServiceServer() {}
 
@@ -92,6 +122,42 @@ func _PlaylistService_CreatePlaylist_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PlaylistService_CreateMelonTop100_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateMelonTop100Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PlaylistServiceServer).CreateMelonTop100(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PlaylistService_CreateMelonTop100_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PlaylistServiceServer).CreateMelonTop100(ctx, req.(*CreateMelonTop100Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PlaylistService_SaveMelonTop100DB_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SaveMelonTop100DBRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PlaylistServiceServer).SaveMelonTop100DB(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PlaylistService_SaveMelonTop100DB_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PlaylistServiceServer).SaveMelonTop100DB(ctx, req.(*SaveMelonTop100DBRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PlaylistService_ServiceDesc is the grpc.ServiceDesc for PlaylistService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -102,6 +168,14 @@ var PlaylistService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreatePlaylist",
 			Handler:    _PlaylistService_CreatePlaylist_Handler,
+		},
+		{
+			MethodName: "CreateMelonTop100",
+			Handler:    _PlaylistService_CreateMelonTop100_Handler,
+		},
+		{
+			MethodName: "SaveMelonTop100DB",
+			Handler:    _PlaylistService_SaveMelonTop100DB_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

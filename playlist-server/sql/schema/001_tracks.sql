@@ -1,12 +1,14 @@
 -- +goose Up
 CREATE TABLE tracks (
-	id SERIAL PRIMARY KEY,
-	name TEXT NOT NULL,
-	artist TEXT NOT NULL,
-	spotify_id TEXT NOT NULL UNIQUE,
-	created_at TIMESTAMP NOT NULL,
-	CONSTRAINT unique_track_name_artist UNIQUE (name, artist)
+    rank INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    artist TEXT NOT NULL,
+    uri TEXT NOT NULL,
+    date DATE NOT NULL,
+    PRIMARY KEY (uri, date)
 );
+
+CREATE INDEX idx_tracks_date ON tracks(date);
 
 -- +goose Down
 
