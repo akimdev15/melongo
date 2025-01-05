@@ -130,6 +130,38 @@ func (q *Queries) GetMissedTracks(ctx context.Context, arg GetMissedTracksParams
 	return i, err
 }
 
+const getMissedTracksByDate = `-- name: GetMissedTracksByDate :many
+SELECT rank, title, artist, date FROM missed_tracks WHERE date = $1
+`
+
+func (q *Queries) GetMissedTracksByDate(ctx context.Context, date time.Time) ([]MissedTrack, error) {
+	rows, err := q.db.QueryContext(ctx, getMissedTracksByDate, date)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MissedTrack
+	for rows.Next() {
+		var i MissedTrack
+		if err := rows.Scan(
+			&i.Rank,
+			&i.Title,
+			&i.Artist,
+			&i.Date,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getResolvedTrack = `-- name: GetResolvedTrack :one
 SELECT missed_title, missed_artist, title, artist, uri, date FROM resolved_tracks WHERE missed_title = $1 AND missed_artist = $2
 `
@@ -184,4 +216,26 @@ func (q *Queries) GetTracksByDate(ctx context.Context, date time.Time) ([]Track,
 		return nil, err
 	}
 	return items, nil
+}
+
+const removeMissedTrack = `-- name: RemoveMissedTrack :one
+DELETE FROM missed_tracks WHERE title = $1 AND artist = $2
+RETURNING rank, title, artist, date
+`
+
+type RemoveMissedTrackParams struct {
+	Title  string
+	Artist string
+}
+
+func (q *Queries) RemoveMissedTrack(ctx context.Context, arg RemoveMissedTrackParams) (MissedTrack, error) {
+	row := q.db.QueryRowContext(ctx, removeMissedTrack, arg.Title, arg.Artist)
+	var i MissedTrack
+	err := row.Scan(
+		&i.Rank,
+		&i.Title,
+		&i.Artist,
+		&i.Date,
+	)
+	return i, err
 }

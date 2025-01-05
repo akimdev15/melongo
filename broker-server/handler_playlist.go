@@ -33,6 +33,10 @@ type MelonTop100Response struct {
 	Status string `json:"status"`
 }
 
+type ResolveMissedTracksRequest struct {
+	ResolvedTracks []*proto.ResolvedTrack `json:"resolvedTracks"`
+}
+
 func handleCreatePlaylist(w http.ResponseWriter, r *http.Request, accessToken string, userID string) {
 	fmt.Println("HandleCreatePlaylist")
 
@@ -182,4 +186,115 @@ func handleSaveMelonTop100DB(w http.ResponseWriter, r *http.Request, accessToken
 		fmt.Println("Error writing JSON")
 		return
 	}
+}
+
+func handleGetMissedTracks(w http.ResponseWriter, r *http.Request, accessToken string, userID string) {
+	apiKey, err := auth.GetAPIKey(r.Header)
+	if err != nil {
+		fmt.Println("Error getting API key. Error: ", err)
+		return
+	}
+
+	date := r.URL.Query().Get("date")
+	if date == "" {
+		http.Error(w, "Missing date parameter", http.StatusBadRequest)
+		return
+	}
+
+	conn, client, ctx, cancel, err := connectToGRPCServer("localhost:50002")
+	if err != nil {
+		fmt.Println("Error during gRPC connection setup:", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	defer func(conn *grpc.ClientConn) {
+		err := conn.Close()
+		if err != nil {
+			fmt.Println("[handleGetMissedTracks] - Error closing connection")
+		}
+	}(conn)
+
+	defer cancel()
+
+	response, err := client.GetMissedTracks(ctx, &proto.GetMissedTracksRequest{
+		ApiKey: apiKey,
+		Date:   date,
+	})
+
+	if err != nil {
+		fmt.Printf("Error in handleGetMissedTracks: %v\n", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	err = writeJSON(w, http.StatusOK, response)
+	if err != nil {
+		fmt.Println("Error writing JSON")
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+}
+
+func handleResolveMissedTracks(w http.ResponseWriter, r *http.Request, accessToken string, userID string) {
+	apiKey, err := auth.GetAPIKey(r.Header)
+	if err != nil {
+		http.Error(w, "API key not found", http.StatusForbidden)
+		return
+	}
+
+	conn, client, ctx, cancel, err := connectToGRPCServer("localhost:50002")
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	defer func(conn *grpc.ClientConn) {
+		err := conn.Close()
+		if err != nil {
+			fmt.Println("[handleResolveMissedTracks] - Error closing connection")
+		}
+	}(conn)
+
+	defer cancel()
+
+	var requestPayload ResolveMissedTracksRequest
+	if err := json.NewDecoder(r.Body).Decode(&requestPayload); err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	response, err := client.ResolveMissedTracks(ctx, &proto.ResolveMissedTracksRequest{
+		ApiKey:         apiKey,
+		AccessToken:    accessToken,
+		ResolvedTracks: requestPayload.ResolvedTracks,
+	})
+
+	if err != nil {
+		fmt.Printf("Error in handleResolveMissedTracks: %v\n", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	err = writeJSON(w, http.StatusOK, response)
+	if err != nil {
+		fmt.Println("Error writing JSON")
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+}
+
+// ---------- HELPER FUNCTIONS ----------
+func connectToGRPCServer(address string) (*grpc.ClientConn, proto.PlaylistServiceClient, context.Context, context.CancelFunc, error) {
+	// Connect to the gRPC server
+	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+	if err != nil {
+		return nil, nil, nil, nil, fmt.Errorf("failed to connect to gRPC server: %w", err)
+	}
+
+	// Create the gRPC client
+	client := proto.NewPlaylistServiceClient(conn)
+
+	// Create a context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+
+	return conn, client, ctx, cancel, nil
 }

@@ -18,10 +18,14 @@ func middlewareAuth(handler authHandler) http.HandlerFunc {
 	// Creating a anonymous function
 	return func(w http.ResponseWriter, r *http.Request) {
 		apiKey, err := auth.GetAPIKey(r.Header)
+		if err != nil {
+			respondWithError(w, 403, "API key not found")
+			return
+		}
 
 		conn, err := grpc.Dial("localhost:50001", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 		if err != nil {
-			fmt.Println("Error during gRPC dial")
+			respondWithError(w, 403, fmt.Sprintf("Error during gRPC dial: %v", err))
 			return
 		}
 		defer conn.Close()
@@ -37,9 +41,8 @@ func middlewareAuth(handler authHandler) http.HandlerFunc {
 		})
 
 		if err != nil {
-			// TODO - need to return errorJSON
-			fmt.Printf("Error in Middleware - AuthorizeUser method: %v\n", err)
-			respondWithError(w, 403, fmt.Sprintf("Auth error: %v", err))
+			respondWithError(w, 403, fmt.Sprintf("Error in AuthenticateUser method: %v", err))
+			return
 		}
 
 		handler(w, r, token.AccessToken, token.UserID)

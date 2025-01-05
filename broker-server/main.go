@@ -33,10 +33,12 @@ func main() {
 	// define routes here
 	mux.HandleFunc("GET /authorize", handleAuthorization)
 	mux.HandleFunc("GET /callback", handleSpotifyCallback)
+	mux.HandleFunc("GET /missedTracks", middlewareAuth(handleGetMissedTracks))
 	mux.HandleFunc("POST /handle", middlewareAuth(handleSubmission))
 	mux.HandleFunc("POST /createPlaylist", middlewareAuth(handleCreatePlaylist))
 	mux.HandleFunc("POST /melonTop100/create", middlewareAuth(handleMelonTop100))
 	mux.HandleFunc("POST /melonTop100/save", middlewareAuth(handleSaveMelonTop100DB))
+	mux.HandleFunc("POST /resolveMissedTracks", middlewareAuth(handleResolveMissedTracks))
 
 	corsHandler := corsMiddleware(mux)
 
