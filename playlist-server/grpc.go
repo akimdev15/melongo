@@ -136,48 +136,84 @@ func (PlaylistServer *PlaylistServer) searchTracksAndSaveToDB(date time.Time, ac
 
 	// Make the db insert non-blocking
 	// TODO - Find a way to do bulk insert
-	go func() {
-		for songDB := range songChan {
-			_, err := PlaylistServer.DB.CreateTrack(context.Background(), database.CreateTrackParams{
-				Rank:   songDB.Rank,
-				Title:  songDB.Title,
-				Artist: songDB.Artist,
-				Uri:    songDB.URI,
-				Date:   songDB.Date,
-			})
+	go PlaylistServer.saveTrackToDB(songChan)
 
-			if err != nil {
-				fmt.Printf("Error saving song to DB: %v. Error: %v", songDB, err)
-				return
-			}
-		}
-	}()
-
-	// Search tracks
+	// Search tracks (this gets executed before the db insert above)
 	for i, song := range songs {
 		wg.Add(1)
-		go func(song mscraper.Song, i int) {
-			defer wg.Done()
-			track, err := spotify.SearchTrack(song.Title, song.Artist, accessToken)
-			if err != nil {
-				// TODO - should collect the missed tracks in chan and add these info to DB or something
-				fmt.Printf("Nothing found for song: %s and artist: %s\n", song.Title, song.Artist)
-				return
-			}
-			if track != nil && track.URI != "" {
-				songChan <- SongDB{
-					Rank:   int32(i + 1),
-					Title:  track.Name,
-					Artist: track.Artist,
-					URI:    track.URI,
-					Date:   date,
-				}
-			}
-		}(song, i)
+		go PlaylistServer.processSong(song, i, date, accessToken, songChan, &wg)
 	}
 
 	wg.Wait()
 	close(songChan)
+}
+
+func (playlistServer *PlaylistServer) saveTrackToDB(songChan <-chan SongDB) {
+	for songDB := range songChan {
+		_, err := playlistServer.DB.CreateTrack(context.Background(), database.CreateTrackParams{
+			Rank:   songDB.Rank,
+			Title:  songDB.Title,
+			Artist: songDB.Artist,
+			Uri:    songDB.URI,
+			Date:   songDB.Date,
+		})
+
+		if err != nil {
+			fmt.Printf("Error saving song to DB: %v. Error: %v", songDB, err)
+			return
+		}
+	}
+}
+
+func (playlistServer *PlaylistServer) processSong(song mscraper.Song, index int, date time.Time, accessToken string, songChan chan<- SongDB, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	track, err := spotify.SearchTrack(song.Title, song.Artist, accessToken)
+	if err != nil {
+		playlistServer.handleTrackSearchError(song, index, date, songChan)
+		return
+	}
+
+	// If track successfully found from Spotify, add it to the songChan
+	if track != nil && track.URI != "" {
+		songChan <- SongDB{
+			Rank:   int32(index + 1),
+			Title:  track.Name,
+			Artist: track.Artist,
+			URI:    track.URI,
+			Date:   date,
+		}
+	}
+}
+
+func (playlistServer *PlaylistServer) handleTrackSearchError(song mscraper.Song, index int, date time.Time, songChan chan<- SongDB) {
+	resolvedTrack, err := playlistServer.DB.GetResolvedTrack(context.Background(), database.GetResolvedTrackParams{
+		MissedTitle:  song.Title,
+		MissedArtist: song.Artist,
+	})
+
+	if err != nil {
+		fmt.Printf("Error getting resolved track: %v. Adding it to the missed track DB.\n", err)
+		_, err := playlistServer.DB.CreateMissedTrack(context.Background(), database.CreateMissedTrackParams{
+			Rank:   int32(index + 1),
+			Title:  song.Title,
+			Artist: song.Artist,
+			Date:   date,
+		})
+		if err != nil {
+			fmt.Printf("Error saving missed track to DB: %v. Error: %v\n", song, err)
+		}
+		return
+	}
+
+	// Resolved track found. Add it to the songChan
+	songChan <- SongDB{
+		Rank:   int32(index + 1),
+		Title:  resolvedTrack.Title,
+		Artist: resolvedTrack.Artist,
+		URI:    resolvedTrack.Uri,
+		Date:   date,
+	}
 }
 
 // getKST returns the current date in KST timezone
