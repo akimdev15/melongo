@@ -8,6 +8,22 @@ import (
 	"time"
 )
 
+type MissedTrack struct {
+	Rank   int32
+	Title  string
+	Artist string
+	Date   time.Time
+}
+
+type ResolvedTrack struct {
+	MissedTitle  string
+	MissedArtist string
+	Title        string
+	Artist       string
+	Uri          string
+	Date         time.Time
+}
+
 type Track struct {
 	Rank   int32
 	Title  string

@@ -10,6 +10,72 @@ import (
 	"time"
 )
 
+const createMissedTrack = `-- name: CreateMissedTrack :one
+INSERT INTO missed_tracks (rank, title, artist, date)
+VALUES ($1, $2, $3, $4)
+	RETURNING rank, title, artist, date
+`
+
+type CreateMissedTrackParams struct {
+	Rank   int32
+	Title  string
+	Artist string
+	Date   time.Time
+}
+
+func (q *Queries) CreateMissedTrack(ctx context.Context, arg CreateMissedTrackParams) (MissedTrack, error) {
+	row := q.db.QueryRowContext(ctx, createMissedTrack,
+		arg.Rank,
+		arg.Title,
+		arg.Artist,
+		arg.Date,
+	)
+	var i MissedTrack
+	err := row.Scan(
+		&i.Rank,
+		&i.Title,
+		&i.Artist,
+		&i.Date,
+	)
+	return i, err
+}
+
+const createResolvedTrack = `-- name: CreateResolvedTrack :one
+INSERT INTO resolved_tracks (missed_title, missed_artist, title, artist, uri, date)
+VALUES ($1, $2, $3, $4, $5, $6)
+	RETURNING missed_title, missed_artist, title, artist, uri, date
+`
+
+type CreateResolvedTrackParams struct {
+	MissedTitle  string
+	MissedArtist string
+	Title        string
+	Artist       string
+	Uri          string
+	Date         time.Time
+}
+
+func (q *Queries) CreateResolvedTrack(ctx context.Context, arg CreateResolvedTrackParams) (ResolvedTrack, error) {
+	row := q.db.QueryRowContext(ctx, createResolvedTrack,
+		arg.MissedTitle,
+		arg.MissedArtist,
+		arg.Title,
+		arg.Artist,
+		arg.Uri,
+		arg.Date,
+	)
+	var i ResolvedTrack
+	err := row.Scan(
+		&i.MissedTitle,
+		&i.MissedArtist,
+		&i.Title,
+		&i.Artist,
+		&i.Uri,
+		&i.Date,
+	)
+	return i, err
+}
+
 const createTrack = `-- name: CreateTrack :one
 INSERT INTO tracks (rank, title, artist, uri, date)
 VALUES ($1, $2, $3, $4, $5)
@@ -35,6 +101,50 @@ func (q *Queries) CreateTrack(ctx context.Context, arg CreateTrackParams) (Track
 	var i Track
 	err := row.Scan(
 		&i.Rank,
+		&i.Title,
+		&i.Artist,
+		&i.Uri,
+		&i.Date,
+	)
+	return i, err
+}
+
+const getMissedTracks = `-- name: GetMissedTracks :one
+SELECT rank, title, artist, date FROM missed_tracks WHERE title = $1 AND artist = $2
+`
+
+type GetMissedTracksParams struct {
+	Title  string
+	Artist string
+}
+
+func (q *Queries) GetMissedTracks(ctx context.Context, arg GetMissedTracksParams) (MissedTrack, error) {
+	row := q.db.QueryRowContext(ctx, getMissedTracks, arg.Title, arg.Artist)
+	var i MissedTrack
+	err := row.Scan(
+		&i.Rank,
+		&i.Title,
+		&i.Artist,
+		&i.Date,
+	)
+	return i, err
+}
+
+const getResolvedTrack = `-- name: GetResolvedTrack :one
+SELECT missed_title, missed_artist, title, artist, uri, date FROM resolved_tracks WHERE missed_title = $1 AND missed_artist = $2
+`
+
+type GetResolvedTrackParams struct {
+	MissedTitle  string
+	MissedArtist string
+}
+
+func (q *Queries) GetResolvedTrack(ctx context.Context, arg GetResolvedTrackParams) (ResolvedTrack, error) {
+	row := q.db.QueryRowContext(ctx, getResolvedTrack, arg.MissedTitle, arg.MissedArtist)
+	var i ResolvedTrack
+	err := row.Scan(
+		&i.MissedTitle,
+		&i.MissedArtist,
 		&i.Title,
 		&i.Artist,
 		&i.Uri,
