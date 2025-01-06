@@ -1,23 +1,41 @@
-// src/main.tsx (or src/index.tsx)
-import React from 'react';
+import React, { useEffect } from "react";
 import ReactDOM from 'react-dom/client';  // Updated import for React 18
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useNavigate } from 'react-router-dom';
 import App from './App';
 import './styles/theme.css';
+import Dashboard from "./components/Dashbooard";
+import LoginPage from "./components/LoginPage";
 
 const Main: React.FC = () => {
+  const navigate = useNavigate(); // useNavigate hook allows us to navigate programmatically
+
+  // useEffect(() => {
+  //   if (token) {
+  //     // If the token exists, navigate to /dashboard
+  //     navigate('/');
+  //   } else {
+  //     // If no token exists, navigate to /
+  //     navigate('/login');
+  //   }
+  // }, [token, navigate]); // This effect will run when 'token' or 'navigate' changes
+
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<App />} />
-        {/* Future routes */}
-        <Route path="/createPlaylist" element={<div>Create Playlist</div>} />
-        <Route path="/resolveMissedTracks" element={<div>Resolve Missed Tracks</div>} />
-      </Routes>
-    </Router>
+    <Routes>
+      <Route path="/" element={<App />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/createPlaylist" element={<div>Create Playlist</div>} />
+      <Route path="/resolveMissedTracks" element={<div>Resolve Missed Tracks</div>} />
+    </Routes>
   );
 };
 
 // Create the root and render the app
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);  // Type assertion for `root`
-root.render(<Main />);
+
+// Wrap Main component in Router here
+root.render(
+  <Router>
+    <Main />
+  </Router>
+);

@@ -23,6 +23,7 @@ message AuthenticateRequest {
 message AuthenticateResponse {
 	string accessToken = 1;
 	string userID = 2;
+	bool isRefreshed = 3;
 }
 
 service AuthService {

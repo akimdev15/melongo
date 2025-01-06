@@ -71,7 +71,7 @@ func (authServer *AuthServer) AuthenticateUser(ctx context.Context, req *proto.A
 		return nil, err
 	}
 
-	fmt.Printf("current token expire time -> %v\n time now: %v\n", userToken.ExpireTime, time.Now().UTC())
+	tokenRefreshed := false
 	if userToken.ExpireTime.Before(time.Now().UTC()) {
 		fmt.Println("Access-Token expired. Getting a new token...")
 		refreshToken, err := RefreshToken(userToken.RefreshToken, ctx)
@@ -110,11 +110,13 @@ func (authServer *AuthServer) AuthenticateUser(ctx context.Context, req *proto.A
 			return nil, err
 		}
 		fmt.Println("Successfully updated the refresh token")
+		tokenRefreshed = true
 	}
 
 	res := &proto.AuthenticateResponse{
 		AccessToken: userToken.AccessToken,
 		UserID:      userToken.ID,
+		IsRefreshed: tokenRefreshed,
 	}
 
 	return res, nil
@@ -173,6 +175,19 @@ func (authServer *AuthServer) AuthorizeUser(ctx context.Context, req *proto.Auth
 	} else if err != nil {
 		fmt.Printf("Error checking for existing user. err: %v\n", err)
 		return nil, err
+	} else {
+		// Should update the token info in the DB for the existing user with new token
+		err = authServer.DB.UpdateToken(ctx, database.UpdateTokenParams{
+			AccessToken:  token.AccessToken,
+			RefreshToken: token.Refresh_Token,
+			ExpireTime:   time.Now().UTC().Add(time.Duration(token.Expires_In) * time.Second),
+			UpdatedAt:    time.Now(),
+			ID:           savedUser.ID,
+		})
+		if err != nil {
+			fmt.Printf("Failed to update the token for the existing user: %s\n. err: %v\n", savedUser.ID, err)
+			return nil, err
+		}
 	}
 
 	res := &proto.AuthCallbackResponse{

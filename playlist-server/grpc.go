@@ -131,7 +131,6 @@ func (PlaylistServer *PlaylistServer) SaveMelonTop100DB(ctx context.Context, req
 }
 
 func (playlistServer *PlaylistServer) GetMissedTracks(ctx context.Context, req *proto.GetMissedTracksRequest) (*proto.GetMissedTrackResponse, error) {
-
 	date, err := time.Parse("2006-01-02", req.Date)
 	if err != nil {
 		return nil, fmt.Errorf("invalid date format: %v", err)

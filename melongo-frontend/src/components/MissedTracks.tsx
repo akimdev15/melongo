@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 // Type definition for missed track, now with both original and edited title and artist
@@ -26,16 +26,22 @@ const MissedTracks: React.FC = () => {
     const [status, setStatus] = useState<string>('');
     const [accessToken, setAccessToken] = useState<string>('');
 
+    useEffect(() => {
+        const token = localStorage.getItem('spotify_access_token');
+        if (token) {
+            setAccessToken(token);
+        }
+    }, []);
+
     // Handle fetching missed tracks
     const fetchMissedTracks = async () => {
         setLoading(true);
         setStatus('');
         try {
+            console.log("DATE: ", date)
             const response = await axios.get(`http://localhost:8080/missedTracks`, {
+                withCredentials: true,
                 params: { date },
-                headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                },
             });
 
             // Ensure the response contains the 'missedTracks' array
@@ -92,9 +98,7 @@ const MissedTracks: React.FC = () => {
                 'http://localhost:8080/resolveMissedTracks',
                 { resolvedTracks: resolvedTracksData },
                 {
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`,
-                    },
+                    withCredentials: true,
                 }
             );
 

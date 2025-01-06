@@ -53,7 +53,7 @@ func main() {
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Set CORS headers
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-CSRF-Token")
 		w.Header().Set("Access-Control-Expose-Headers", "Link")
@@ -95,11 +95,18 @@ func handleSpotifyCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var payload UserCreatedPayload
-	payload.Name = response.Name
-	payload.AccessToken = response.AccessToken
+	http.SetCookie(w, &http.Cookie{
+		Name:     "spotify_access_token",
+		Value:    response.AccessToken,
+		HttpOnly: true, // Prevent JS access to the cookie
+		Secure:   true, // Only send cookie over HTTPS (important for production)
+		SameSite: http.SameSiteStrictMode,
+		Path:     "/",
+		MaxAge:   7200, // Expiry time (2 hour here)
+	})
 
-	writeJSON(w, http.StatusAccepted, payload)
+	redirectURL := fmt.Sprintf("http://localhost:5173/dashboard?access_token=%s", response.AccessToken)
+	http.Redirect(w, r, redirectURL, http.StatusFound) // 302 Redirect
 }
 
 func handleSubmission(w http.ResponseWriter, r *http.Request, accessToken string, userID string) {
@@ -108,6 +115,9 @@ func handleSubmission(w http.ResponseWriter, r *http.Request, accessToken string
 	fmt.Printf("UserID: %s\n", userID)
 }
 
+// NOT USED ANY MORE
+// Initially used this method to initiate login and redirect to Spotify login page
+// But, faced CORS error so we are calling the Spotify login page from the frontend
 func handleAuthorization(w http.ResponseWriter, r *http.Request) {
 	clientID := os.Getenv("ClientID")
 	redirectURI := os.Getenv("RedirectURI")
