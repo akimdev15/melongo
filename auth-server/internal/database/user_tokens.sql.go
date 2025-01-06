@@ -64,6 +64,25 @@ func (q *Queries) GetUserTokenByAPIKey(ctx context.Context, apiKey string) (User
 	return i, err
 }
 
+const getUserTokenByAccessToken = `-- name: GetUserTokenByAccessToken :one
+SELECT id, api_key, access_token, refresh_token, expire_time, created_at, updated_at FROM user_tokens WHERE access_token = $1
+`
+
+func (q *Queries) GetUserTokenByAccessToken(ctx context.Context, accessToken string) (UserToken, error) {
+	row := q.db.QueryRowContext(ctx, getUserTokenByAccessToken, accessToken)
+	var i UserToken
+	err := row.Scan(
+		&i.ID,
+		&i.ApiKey,
+		&i.AccessToken,
+		&i.RefreshToken,
+		&i.ExpireTime,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const updateToken = `-- name: UpdateToken :exec
 UPDATE user_tokens
 SET access_token = $1,

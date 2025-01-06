@@ -24,7 +24,7 @@ const MissedTracks: React.FC = () => {
     const [date, setDate] = useState<string>(getTodayDate()); // Default date
     const [loading, setLoading] = useState<boolean>(false);
     const [status, setStatus] = useState<string>('');
-    const [apiKey, setApiKey] = useState<string>('0ecb6fc2fc51f6bfa015969446a0557bf242556ba9fcec9c4476ead4fdc74c37');
+    const [accessToken, setAccessToken] = useState<string>('');
 
     // Handle fetching missed tracks
     const fetchMissedTracks = async () => {
@@ -34,7 +34,7 @@ const MissedTracks: React.FC = () => {
             const response = await axios.get(`http://localhost:8080/missedTracks`, {
                 params: { date },
                 headers: {
-                    Authorization: `ApiKey ${apiKey}`,
+                    Authorization: `Bearer ${accessToken}`,
                 },
             });
 
@@ -93,7 +93,7 @@ const MissedTracks: React.FC = () => {
                 { resolvedTracks: resolvedTracksData },
                 {
                     headers: {
-                        Authorization: `ApiKey ${apiKey}`,
+                        Authorization: `Bearer ${accessToken}`,
                     },
                 }
             );

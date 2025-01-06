@@ -60,12 +60,12 @@ func (app *apiConfig) grpcListen() {
 }
 
 func (authServer *AuthServer) AuthenticateUser(ctx context.Context, req *proto.AuthenticateRequest) (*proto.AuthenticateResponse, error) {
-	apiKey := req.GetApiKey()
-	if apiKey == "" {
-		return nil, errors.New("API_KEY is empty")
+	accessToken := req.GetAccessToken()
+	if accessToken == "" {
+		return nil, errors.New("AccessToken is empty")
 	}
 
-	userToken, err := authServer.DB.GetUserTokenByAPIKey(ctx, apiKey)
+	userToken, err := authServer.DB.GetUserTokenByAccessToken(ctx, accessToken)
 	if err != nil {
 		fmt.Printf("Error getting user token from the DB. error: %v\n", err)
 		return nil, err
@@ -176,8 +176,8 @@ func (authServer *AuthServer) AuthorizeUser(ctx context.Context, req *proto.Auth
 	}
 
 	res := &proto.AuthCallbackResponse{
-		ApiKey: savedUser.ApiKey,
-		Name:   savedUser.Name,
+		AccessToken: token.AccessToken,
+		Name:        savedUser.Name,
 	}
 
 	return res, nil
@@ -320,7 +320,6 @@ func RefreshToken(refreshToken string, ctx context.Context) (SpotifyTokenRespons
 	if err != nil {
 		return SpotifyTokenResponse{}, fmt.Errorf("failed to send request: %w", err)
 	}
-	fmt.Println("HERE!!!, response: ", resp)
 	defer func() {
 		if resp != nil && resp.Body != nil {
 			err := resp.Body.Close()

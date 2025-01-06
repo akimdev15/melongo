@@ -12,12 +12,12 @@ message AuthCallbackRequest {
 
 // Returns the userID and the name of the user created
 message AuthCallbackResponse {
-	string apiKey = 1;
+	string accessToken = 1;
 	string name = 2;
 }
 
 message AuthenticateRequest {
-	string apiKey = 1;
+	string accessToken = 1;
 }
 
 message AuthenticateResponse {

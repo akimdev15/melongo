@@ -18,8 +18,8 @@ import (
 const PORT = ":8080"
 
 type UserCreatedPayload struct {
-	Name   string `json:"name"`
-	ApiKey string `json:"api_key"`
+	Name        string `json:"name"`
+	AccessToken string `json:"accessToken"`
 }
 
 func main() {
@@ -72,7 +72,6 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 func handleSpotifyCallback(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Handling spotify callback")
 	code := r.URL.Query().Get("code")
 	// connect to server
 	conn, err := grpc.Dial("localhost:50001", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
@@ -88,21 +87,17 @@ func handleSpotifyCallback(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	// call AuthorizeUser method in the auth service
-	user, err := client.AuthorizeUser(ctx, &proto.AuthCallbackRequest{
+	response, err := client.AuthorizeUser(ctx, &proto.AuthCallbackRequest{
 		Code: code,
 	})
 	if err != nil {
-		// TODO - need to return errorJSON
-		fmt.Printf("Error in AuthorizeUser method: %v\n", err)
+		writeJSON(w, http.StatusInternalServerError, "Error in AuthorizeUser method")
 		return
 	}
-	fmt.Printf("User: %s\n", user.Name)
-	type JsonResponse struct {
-		Name string
-	}
+
 	var payload UserCreatedPayload
-	payload.Name = user.Name
-	payload.ApiKey = user.ApiKey
+	payload.Name = response.Name
+	payload.AccessToken = response.AccessToken
 
 	writeJSON(w, http.StatusAccepted, payload)
 }
@@ -114,7 +109,6 @@ func handleSubmission(w http.ResponseWriter, r *http.Request, accessToken string
 }
 
 func handleAuthorization(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Hit the authorization endpoint")
 	clientID := os.Getenv("ClientID")
 	redirectURI := os.Getenv("RedirectURI")
 	scopes := os.Getenv("Scopes")

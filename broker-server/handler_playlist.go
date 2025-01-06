@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/akimdev15/melongo/broker/internal/auth"
 	"github.com/akimdev15/melongo/broker/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -39,8 +38,6 @@ type ResolveMissedTracksRequest struct {
 
 func handleCreatePlaylist(w http.ResponseWriter, r *http.Request, accessToken string, userID string) {
 	fmt.Println("HandleCreatePlaylist")
-
-	apiKey, err := auth.GetAPIKey(r.Header)
 	// connect to server
 	conn, err := grpc.Dial("localhost:50002", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
@@ -66,7 +63,6 @@ func handleCreatePlaylist(w http.ResponseWriter, r *http.Request, accessToken st
 	}
 
 	playlistResponse, err := client.CreatePlaylist(ctx, &proto.CreatePlaylistRequest{
-		ApiKey:       apiKey,
 		AccessToken:  accessToken,
 		UserID:       userID,
 		PlaylistName: payload.Name,
@@ -97,7 +93,6 @@ func handleCreatePlaylist(w http.ResponseWriter, r *http.Request, accessToken st
 func handleMelonTop100(w http.ResponseWriter, r *http.Request, accessToken string, userID string) {
 	fmt.Println("Hit HandleMelonTop100")
 
-	apiKey, err := auth.GetAPIKey(r.Header)
 	// connect to server
 	conn, err := grpc.Dial("localhost:50002", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
@@ -123,7 +118,6 @@ func handleMelonTop100(w http.ResponseWriter, r *http.Request, accessToken strin
 	}
 
 	response, err := client.CreateMelonTop100(ctx, &proto.CreateMelonTop100Request{
-		ApiKey:      apiKey,
 		AccessToken: accessToken,
 		UserID:      userID,
 		PlaylistID:  payload.PlaylistID,
@@ -147,9 +141,6 @@ func handleMelonTop100(w http.ResponseWriter, r *http.Request, accessToken strin
 }
 
 func handleSaveMelonTop100DB(w http.ResponseWriter, r *http.Request, accessToken string, userID string) {
-	fmt.Println("Hit HandleSaveMelonTop100")
-
-	apiKey, err := auth.GetAPIKey(r.Header)
 	// connect to server
 	conn, err := grpc.Dial("localhost:50002", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
@@ -169,7 +160,6 @@ func handleSaveMelonTop100DB(w http.ResponseWriter, r *http.Request, accessToken
 	defer cancel()
 
 	response, err := client.SaveMelonTop100DB(ctx, &proto.SaveMelonTop100DBRequest{
-		ApiKey:      apiKey,
 		AccessToken: accessToken,
 	})
 
@@ -189,12 +179,6 @@ func handleSaveMelonTop100DB(w http.ResponseWriter, r *http.Request, accessToken
 }
 
 func handleGetMissedTracks(w http.ResponseWriter, r *http.Request, accessToken string, userID string) {
-	apiKey, err := auth.GetAPIKey(r.Header)
-	if err != nil {
-		fmt.Println("Error getting API key. Error: ", err)
-		return
-	}
-
 	date := r.URL.Query().Get("date")
 	if date == "" {
 		http.Error(w, "Missing date parameter", http.StatusBadRequest)
@@ -217,8 +201,8 @@ func handleGetMissedTracks(w http.ResponseWriter, r *http.Request, accessToken s
 	defer cancel()
 
 	response, err := client.GetMissedTracks(ctx, &proto.GetMissedTracksRequest{
-		ApiKey: apiKey,
-		Date:   date,
+		AccessToken: accessToken,
+		Date:        date,
 	})
 
 	if err != nil {
@@ -236,11 +220,6 @@ func handleGetMissedTracks(w http.ResponseWriter, r *http.Request, accessToken s
 }
 
 func handleResolveMissedTracks(w http.ResponseWriter, r *http.Request, accessToken string, userID string) {
-	apiKey, err := auth.GetAPIKey(r.Header)
-	if err != nil {
-		http.Error(w, "API key not found", http.StatusForbidden)
-		return
-	}
 
 	conn, client, ctx, cancel, err := connectToGRPCServer("localhost:50002")
 	if err != nil {
@@ -263,7 +242,6 @@ func handleResolveMissedTracks(w http.ResponseWriter, r *http.Request, accessTok
 	}
 
 	response, err := client.ResolveMissedTracks(ctx, &proto.ResolveMissedTracksRequest{
-		ApiKey:         apiKey,
 		AccessToken:    accessToken,
 		ResolvedTracks: requestPayload.ResolvedTracks,
 	})

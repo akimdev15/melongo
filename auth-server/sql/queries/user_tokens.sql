@@ -6,6 +6,9 @@ RETURNING *;
 -- name: GetUserTokenByAPIKey :one
 SELECT * FROM user_tokens WHERE api_key = $1;
 
+-- name: GetUserTokenByAccessToken :one
+SELECT * FROM user_tokens WHERE access_token = $1;
+
 -- name: UpdateToken :exec
 UPDATE user_tokens
 SET access_token = $1,

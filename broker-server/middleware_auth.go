@@ -17,7 +17,7 @@ type authHandler func(http.ResponseWriter, *http.Request, string, string)
 func middlewareAuth(handler authHandler) http.HandlerFunc {
 	// Creating a anonymous function
 	return func(w http.ResponseWriter, r *http.Request) {
-		apiKey, err := auth.GetAPIKey(r.Header)
+		accessToken, err := auth.GetAccessToken(r.Header)
 		if err != nil {
 			respondWithError(w, 403, "API key not found")
 			return
@@ -37,7 +37,7 @@ func middlewareAuth(handler authHandler) http.HandlerFunc {
 
 		// call AuthorizeUser method in the auth service
 		token, err := client.AuthenticateUser(ctx, &proto.AuthenticateRequest{
-			ApiKey: apiKey,
+			AccessToken: accessToken,
 		})
 
 		if err != nil {
