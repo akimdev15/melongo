@@ -5,6 +5,7 @@ import App from './App';
 import './styles/theme.css';
 import Dashboard from "./components/Dashbooard";
 import LoginPage from "./components/LoginPage";
+import CreatePlaylist from "./components/CreatePlaylist";
 
 const Main: React.FC = () => {
   const navigate = useNavigate(); // useNavigate hook allows us to navigate programmatically
@@ -23,6 +24,7 @@ const Main: React.FC = () => {
     <Routes>
       <Route path="/" element={<App />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/createPlaylist" element={<CreatePlaylist />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/createPlaylist" element={<div>Create Playlist</div>} />
       <Route path="/resolveMissedTracks" element={<div>Resolve Missed Tracks</div>} />
