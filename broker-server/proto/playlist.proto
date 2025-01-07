@@ -24,6 +24,7 @@ message CreateMelonTop100Request {
 	string accessToken = 1;
 	string userID = 2;
 	string playlistID = 3;
+	string date = 4;
 }
 
 message CreateMelonTop100Response {

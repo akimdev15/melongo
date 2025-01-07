@@ -28,6 +28,7 @@ const CreatePlaylist: React.FC = () => {
 
     // State for Add Melon Songs to Playlist form
     const [melonPlaylistId, setMelonPlaylistId] = useState<string>('');
+    const [melonDate, setMelonDate] = useState<string>(''); // New state for melon date
     const [melonStatus, setMelonStatus] = useState<string>('');
 
     // Handle input changes for playlist name, description, and public toggle
@@ -81,6 +82,11 @@ const CreatePlaylist: React.FC = () => {
             return;
         }
 
+        if (!melonDate) {
+            setMelonStatus('Please select a date for Melon Top 100.');
+            return;
+        }
+
         setLoading(true);
         setMelonStatus('');
         try {
@@ -89,6 +95,7 @@ const CreatePlaylist: React.FC = () => {
                 'http://localhost:8080/melonTop100/create', // Replace with your backend endpoint
                 {
                     playlistID: melonPlaylistId, // The playlist ID entered by the user
+                    date: melonDate, // Include the date in the request body
                 },
                 {
                     withCredentials: true,
@@ -178,6 +185,17 @@ const CreatePlaylist: React.FC = () => {
                         value={melonPlaylistId}
                         onChange={(e) => setMelonPlaylistId(e.target.value)}
                         placeholder="Enter playlist ID"
+                        disabled={loading}
+                    />
+                </div>
+
+                {/* Date Selector */}
+                <div className="input-group">
+                    <label>Select Date for Melon Top 100:</label>
+                    <input
+                        type="date"
+                        value={melonDate}
+                        onChange={(e) => setMelonDate(e.target.value)}
                         disabled={loading}
                     />
                 </div>

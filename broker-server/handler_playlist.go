@@ -26,6 +26,7 @@ type CreatePlaylistPayload struct {
 
 type MelonTop100Request struct {
 	PlaylistID string `json:"playlistID"`
+	Date       string `json:"date"`
 }
 
 type MelonTop100Response struct {
@@ -121,6 +122,7 @@ func handleMelonTop100(w http.ResponseWriter, r *http.Request, accessToken strin
 		AccessToken: accessToken,
 		UserID:      userID,
 		PlaylistID:  payload.PlaylistID,
+		Date:        payload.Date,
 	})
 
 	if err != nil {

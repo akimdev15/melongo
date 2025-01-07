@@ -349,6 +349,8 @@ func AddTrackToPlaylist(playlistID string, trackURI []string, accessToken string
 		URIs: trackURI,
 	}
 
+	fmt.Println("TrackURI: ", len(trackURI))
+
 	body, err := json.Marshal(addTrackRequest)
 	if err != nil {
 		fmt.Println("Error during json.Marshal")
@@ -440,6 +442,7 @@ func makeSpotifyPostRequest(address string, data []byte, accessToken string) ([]
 	}(resp.Body)
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		fmt.Println(resp)
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 

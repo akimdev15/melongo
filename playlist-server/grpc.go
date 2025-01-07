@@ -68,35 +68,20 @@ func (playlistServer *PlaylistServer) CreatePlaylist(ctx context.Context, req *p
 }
 
 func (PlaylistServer *PlaylistServer) CreateMelonTop100(ctx context.Context, req *proto.CreateMelonTop100Request) (*proto.CreateMelonTop100Response, error) {
-	// TODO - need to use cache (takes too long)
-	songs := mscraper.GetMelonTop100Songs()
-
-	var wg sync.WaitGroup
-	uriChan := make(chan string, len(songs))
-
-	for _, song := range songs {
-		wg.Add(1)
-		go func(song mscraper.Song) {
-			defer wg.Done()
-			track, err := spotify.SearchTrack(song.Title, song.Artist, req.AccessToken)
-			if err != nil {
-				// TODO - should collect the missed tracks in chan and add these info to DB or something
-				fmt.Printf("Nothing found for song: %s and artist: %s\n", song.Title, song.Artist)
-				return
-			}
-			if track != nil && track.URI != "" {
-				uriChan <- track.URI
-			}
-		}(song)
+	date, err := time.Parse("2006-01-02", req.Date)
+	if err != nil {
+		return nil, fmt.Errorf("invalid date format: %v", err)
 	}
 
-	wg.Wait()
-	close(uriChan)
+	songs, err := PlaylistServer.DB.GetTracksByDate(context.Background(), date)
+	if err != nil {
+		return nil, fmt.Errorf("error getting tracks by date: %v", err)
+	}
 
-	// Collect URIs from the channel
 	var uris []string
-	for uri := range uriChan {
-		uris = append(uris, uri)
+
+	for _, song := range songs {
+		uris = append(uris, song.Uri)
 	}
 
 	// Return the response before adding tracks to the playlist
