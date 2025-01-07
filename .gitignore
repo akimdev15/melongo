@@ -1,3 +1,6 @@
 .vscode/
 melongo
-.env
+*.env
+*.idea
+*.idea/
+playlist-server/playlist-server

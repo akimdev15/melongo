@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "../proto";
+
+
+
+message CreatePlaylistRequest{
+	string accessToken = 1;
+	string playlistName = 2;
+	string description = 3;
+	bool isPublic = 4;
+	string userID = 5;
+}
+
+message CreatePlaylistResponse {
+	string spotifyPlaylistID = 1;
+	string externalURL = 2;
+	string name = 3;
+}
+
+message CreateMelonTop100Request {
+	string accessToken = 1;
+	string userID = 2;
+	string playlistID = 3;
+	string date = 4;
+}
+
+message CreateMelonTop100Response {
+	string status = 1;
+}
+
+message SaveMelonTop100DBRequest {
+	string accessToken = 1;
+}
+
+message SaveMelonTop100DBResponse {
+	string status = 1;
+}
+
+message MissedTrack {
+	int32 rank = 1;
+	string title = 2;
+	string artist = 3;
+	string date = 4;
+}
+
+message GetMissedTracksRequest {
+	string accessToken = 1;
+	string date = 2;
+}
+
+message GetMissedTrackResponse {
+	repeated MissedTrack missedTracks = 1;
+}
+
+message ResolvedTrack {
+	int32 rank = 1;
+	string missed_title = 2;
+	string missed_artist = 3;
+	string title = 4;
+	string artist = 5;
+	string date = 6;
+}
+
+message ResolveMissedTracksRequest {
+	string accessToken = 1;
+	repeated ResolvedTrack resolvedTracks = 2;
+}
+
+message ResolveMissedTracksResponse {
+	string status = 1;
+}
+
+service PlaylistService {
+	rpc CreatePlaylist(CreatePlaylistRequest) returns (CreatePlaylistResponse);
+	rpc CreateMelonTop100(CreateMelonTop100Request) returns (CreateMelonTop100Response);
+	rpc SaveMelonTop100DB(SaveMelonTop100DBRequest) returns (SaveMelonTop100DBResponse);
+	rpc GetMissedTracks(GetMissedTracksRequest) returns (GetMissedTrackResponse);
+	rpc ResolveMissedTracks(ResolveMissedTracksRequest) returns (ResolveMissedTracksResponse);
+}

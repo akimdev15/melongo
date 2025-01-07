@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "../proto";
+
+
+// AuthCallbackRequest Callback will contain code and state (not using now)
+message AuthCallbackRequest {
+	string code = 1;
+}
+
+// AuthCallbackResponse returns the userID and the name of the user created
+message AuthCallbackResponse {
+	string accessToken = 1;
+	string name = 2;
+}
+
+message AuthenticateRequest {
+	string accessToken = 1;
+}
+
+message AuthenticateResponse {
+	string accessToken = 1;
+	string userID = 2;
+	bool isRefreshed = 3;
+}
+
+service AuthService {
+	// When user login through spotify, will receive callback.
+	// This cotains a code which can be used to get an auth token.
+	// With the auth token, will get user info and create a new user.
+	// Also save the token, refresh token, expire date in a database.
+	// Return userID and name that user can use to make a subsequent request.
+	rpc AuthorizeUser(AuthCallbackRequest) returns (AuthCallbackResponse);
+
+	// When user is requesting for something like playlist, will always have 
+	// to go through this authentication method
+	rpc AuthenticateUser(AuthenticateRequest) returns (AuthenticateResponse);
+}

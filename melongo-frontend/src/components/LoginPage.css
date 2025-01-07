@@ -1,0 +1,42 @@
+/* Styling for the LoginPage */
+
+.login-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f0f0f0;
+    font-family: 'Arial', sans-serif;
+}
+
+.login-title {
+    font-size: 2rem;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.login-button {
+    padding: 12px 24px;
+    font-size: 16px;
+    color: #fff;
+    background-color: #1db954;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.login-button:disabled {
+    background-color: #ddd;
+}
+
+.login-button:hover {
+    background-color: #1ed760;
+}
+
+.error-message {
+    margin-top: 20px;
+    color: red;
+    font-size: 14px;
+}
