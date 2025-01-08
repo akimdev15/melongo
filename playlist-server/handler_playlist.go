@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/akimdev15/melongo/playlist-server/spotify"
@@ -27,7 +27,7 @@ func (apiCfg *apiConfig) testHandler(w http.ResponseWriter, r *http.Request) {
 	for _, song := range songs {
 		track, err := spotify.SearchTrack(song.Title, song.Artist, AccessToken)
 		if err != nil {
-			fmt.Printf("Nothing found for song: %s and artist: %s\n", song.Title, song.Artist)
+			slog.Error("Error searching track", "error", err)
 		}
 		if track != nil && track.URI != "" {
 			uris = append(uris, track.URI)
@@ -50,7 +50,7 @@ func (apiCfg *apiConfig) testNewAlbumsHandler(w http.ResponseWriter, r *http.Req
 	// tracks, err := spotify.SearchTracksFromAlbum("#2024: 가장자리", "Minit", AccessToken)
 
 	if err != nil {
-		fmt.Println("Error searching tracks: ", err)
+		slog.Error("Error searching tracks: ", err)
 		return
 	}
 

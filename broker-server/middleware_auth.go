@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -18,6 +19,7 @@ func middlewareAuth(handler authHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("spotify_access_token")
 		if err != nil || cookie == nil {
+			slog.Error("No access token found in the cookie")
 			respondWithError(w, 401, "Unauthorized. Please login again.")
 			return
 		}
@@ -26,6 +28,7 @@ func middlewareAuth(handler authHandler) http.HandlerFunc {
 
 		conn, err := grpc.Dial("localhost:50001", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 		if err != nil {
+			slog.Error("Error during gRPC dial", "error", err)
 			respondWithError(w, 403, fmt.Sprintf("Error during gRPC dial: %v", err))
 			return
 		}
@@ -42,6 +45,7 @@ func middlewareAuth(handler authHandler) http.HandlerFunc {
 		})
 
 		if err != nil {
+			slog.Error("Error in AuthenticateUser method", "error", err)
 			respondWithError(w, 403, fmt.Sprintf("Error in AuthenticateUser method: %v", err))
 			return
 		}

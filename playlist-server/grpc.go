@@ -4,8 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
+	"log/slog"
 	"net"
+	"os"
 	"sync"
 	"time"
 
@@ -37,26 +38,27 @@ type SongDB struct {
 func (apiCfg *apiConfig) grpcListen() {
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", gRPCPORT))
 	if err != nil {
-		log.Fatalf("Failed to listen for grpc %v", err)
+		slog.Error("Failed to listen for grpc", "error", err)
+		os.Exit(1)
 	}
+
 	grpcServer := grpc.NewServer()
 	proto.RegisterPlaylistServiceServer(grpcServer, &PlaylistServer{DB: apiCfg.DB, DBConn: apiCfg.DBConn})
-	fmt.Printf("gRPC server start on PORT %s]\n", gRPCPORT)
+	slog.Info("gRPC server start on", "PORT", gRPCPORT)
 	if err = grpcServer.Serve(lis); err != nil {
-		log.Fatalf("Failed to listen for gRPC %v", err)
+		slog.Error("Failed to listen for gRPC", "error", err)
+		os.Exit(1)
 	}
 }
 
 func (playlistServer *PlaylistServer) CreatePlaylist(ctx context.Context, req *proto.CreatePlaylistRequest) (*proto.CreatePlaylistResponse, error) {
-	fmt.Println("Received request to create playlist using gRPC")
+	slog.Info("Creating new playlist", "name", req.PlaylistName, "description", req.Description, "isPublic", req.IsPublic, "userID", req.UserID)
 	// 0. Create a new playlist
 	newPlaylistResponse, err := spotify.CreateNewPlaylist(req.PlaylistName, req.Description, req.IsPublic, req.UserID, req.AccessToken)
 	if err != nil {
-		fmt.Println("Error creating new playlist")
+		slog.Error("Error creating new playlist.", "error", err)
 		return nil, err
 	}
-
-	fmt.Println("new playlist: ", newPlaylistResponse)
 
 	res := &proto.CreatePlaylistResponse{
 		SpotifyPlaylistID: newPlaylistResponse.SpotifyPlaylistID,
@@ -70,11 +72,13 @@ func (playlistServer *PlaylistServer) CreatePlaylist(ctx context.Context, req *p
 func (PlaylistServer *PlaylistServer) CreateMelonTop100(ctx context.Context, req *proto.CreateMelonTop100Request) (*proto.CreateMelonTop100Response, error) {
 	date, err := time.Parse("2006-01-02", req.Date)
 	if err != nil {
+		slog.Error("[CreateMelonTop100] - Invalid date format", "error", err)
 		return nil, fmt.Errorf("invalid date format: %v", err)
 	}
 
 	songs, err := PlaylistServer.DB.GetTracksByDate(context.Background(), date)
 	if err != nil {
+		slog.Error("[CreateMelonTop100] - Error getting tracks by date", "error", err)
 		return nil, fmt.Errorf("error getting tracks by date: %v", err)
 	}
 
@@ -93,8 +97,9 @@ func (PlaylistServer *PlaylistServer) CreateMelonTop100(ctx context.Context, req
 	go func() {
 		_, err := spotify.AddTrackToPlaylist(req.PlaylistID, uris, req.AccessToken)
 		if err != nil {
-			fmt.Println("Error adding tracks to playlist: ", err)
+			slog.Error("[CreateMelonTop100] - Error adding tracks to playlist", "error", err)
 		}
+		slog.Info("[CreateMelonTop100] - Asynchronously added tracks to the playlist", "playlistID", req.PlaylistID, "tracks", len(uris))
 	}()
 
 	return response, nil
@@ -181,6 +186,7 @@ func (playlistServer *PlaylistServer) ResolveMissedTracks(ctx context.Context, r
 
 func (PlaylistServer *PlaylistServer) searchTracksAndSaveToDB(date time.Time, accessToken string) {
 	songs := mscraper.GetMelonTop100Songs()
+	slog.Info("Melon top 100 scraped", "date", date, "tracks", len(songs))
 
 	var wg sync.WaitGroup
 	songChan := make(chan SongDB, len(songs))
@@ -210,7 +216,7 @@ func (playlistServer *PlaylistServer) saveTrackToDB(songChan <-chan SongDB) {
 		})
 
 		if err != nil {
-			fmt.Printf("Error saving song to DB: %v. Error: %v", songDB, err)
+			slog.Error("Error saving track to DB", "error", err)
 			return
 		}
 	}
@@ -244,7 +250,7 @@ func (playlistServer *PlaylistServer) handleTrackSearchError(song mscraper.Song,
 	})
 
 	if err != nil {
-		fmt.Printf("Error getting resolved track: %v. Adding it to the missed track DB.\n", err)
+		slog.Info("Adding it to the missed track DB", "song", song, "error", err)
 		_, err := playlistServer.DB.CreateMissedTrack(context.Background(), database.CreateMissedTrackParams{
 			Rank:   int32(index + 1),
 			Title:  song.Title,
@@ -252,7 +258,7 @@ func (playlistServer *PlaylistServer) handleTrackSearchError(song mscraper.Song,
 			Date:   date,
 		})
 		if err != nil {
-			fmt.Printf("Error saving missed track to DB: %v. Error: %v\n", song, err)
+			slog.Error("Error saving missed track to DB", "error", err)
 		}
 		return
 	}
@@ -271,10 +277,11 @@ func (playlistServer *PlaylistServer) handleTrackSearchError(song mscraper.Song,
 // @param resolvedTrack: the resolved track from the frontend
 // @param searchedTrack: the track found from the spotify search
 func (playlistServer *PlaylistServer) performDBTXForResolvedTrack(resolvedTrack *proto.ResolvedTrack, searchedTrack *spotify.Track) error {
+	slog.Info("Performing DB transaction for the resolved track", "resolvedTrack", resolvedTrack, "searchedTrack", searchedTrack)
 
 	tx, err := playlistServer.DBConn.Begin()
 	if err != nil {
-		fmt.Printf("Error starting transaction")
+		slog.Error("Error starting transaction", "error", err)
 		return err
 	}
 
@@ -284,7 +291,7 @@ func (playlistServer *PlaylistServer) performDBTXForResolvedTrack(resolvedTrack 
 
 	date, err := time.Parse("2006-01-02", resolvedTrack.Date)
 	if err != nil {
-		fmt.Println("Error parsing date: ", resolvedTrack.Date)
+		slog.Error("Error parsing date", "date", resolvedTrack.Date, "error", err)
 		return err
 	}
 	_, err = qtx.CreateResolvedTrack(context.Background(), database.CreateResolvedTrackParams{
@@ -296,7 +303,7 @@ func (playlistServer *PlaylistServer) performDBTXForResolvedTrack(resolvedTrack 
 		Date:         time.Now(),
 	})
 	if err != nil {
-		fmt.Printf("Error saving resolved track to DB: %v. Error: %v", resolvedTrack, err)
+		slog.Error("Error saving resolved track to DB", "resolvedTrack", resolvedTrack, "error", err)
 		return err
 	}
 
@@ -305,7 +312,7 @@ func (playlistServer *PlaylistServer) performDBTXForResolvedTrack(resolvedTrack 
 		Artist: resolvedTrack.MissedArtist,
 	})
 	if err != nil {
-		fmt.Printf("Error removing missed track from DB: %v. Error: %v", resolvedTrack, err)
+		slog.Error("Error removing missed track from DB", "resolvedTrack", resolvedTrack, "error", err)
 		return err
 	}
 
@@ -318,7 +325,7 @@ func (playlistServer *PlaylistServer) performDBTXForResolvedTrack(resolvedTrack 
 		Date:   date,
 	})
 	if err != nil {
-		fmt.Printf("Error saving resolved track to DB: %v. Error: %v", resolvedTrack, err)
+		slog.Error("Error saving resolved track to DB", "resolvedTrack", resolvedTrack, "error", err)
 		return err
 	}
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -42,13 +43,13 @@ func handleCreatePlaylist(w http.ResponseWriter, r *http.Request, accessToken st
 	// connect to server
 	conn, err := grpc.Dial("localhost:50002", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
-		fmt.Println("Error during gRPC dial")
+		slog.Error("Error during gRPC dial", "error", err)
 		return
 	}
 	defer func(conn *grpc.ClientConn) {
 		err := conn.Close()
 		if err != nil {
-
+			slog.Error("Error closing connection", "error", err)
 		}
 	}(conn)
 
@@ -59,7 +60,7 @@ func handleCreatePlaylist(w http.ResponseWriter, r *http.Request, accessToken st
 
 	var payload CreatePlaylistPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		fmt.Println("Error decoding payload")
+		slog.Error("Error decoding payload", "error", err)
 		return
 	}
 
@@ -74,10 +75,11 @@ func handleCreatePlaylist(w http.ResponseWriter, r *http.Request, accessToken st
 	// TODO -> ERROR HERE
 	if err != nil {
 		// TODO - need to return errorJSON
-		fmt.Printf("Error creating playlist: %v\n", err)
+		slog.Error("Error creating playlist", "error", err)
 		return
 	}
-	fmt.Println("Playlist Response: ", playlistResponse)
+
+	slog.Info("Playlist Response: ", "response", playlistResponse)
 
 	var responsePayload CreatePlaylistResponse
 	responsePayload.SpotifyPlaylistID = playlistResponse.SpotifyPlaylistID
@@ -86,24 +88,22 @@ func handleCreatePlaylist(w http.ResponseWriter, r *http.Request, accessToken st
 
 	err = writeJSON(w, http.StatusOK, responsePayload)
 	if err != nil {
-		fmt.Println("Error writing JSON")
+		slog.Error("Error writing JSON", "error", err)
 		return
 	}
 }
 
 func handleMelonTop100(w http.ResponseWriter, r *http.Request, accessToken string, userID string) {
-	fmt.Println("Hit HandleMelonTop100")
-
 	// connect to server
 	conn, err := grpc.Dial("localhost:50002", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
-		fmt.Println("Error during gRPC dial")
+		slog.Error("Error during gRPC dial", "error", err)
 		return
 	}
 	defer func(conn *grpc.ClientConn) {
 		err := conn.Close()
 		if err != nil {
-
+			slog.Error("Error closing connection", "error", err)
 		}
 	}(conn)
 
@@ -114,7 +114,7 @@ func handleMelonTop100(w http.ResponseWriter, r *http.Request, accessToken strin
 
 	var payload MelonTop100Request
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		fmt.Println("Error decoding payload")
+		slog.Error("Error decoding payload", "error", err)
 		return
 	}
 
@@ -127,17 +127,17 @@ func handleMelonTop100(w http.ResponseWriter, r *http.Request, accessToken strin
 
 	if err != nil {
 		// TODO - need to return errorJSON
-		fmt.Printf("Error creating playlist: %v\n", err)
+		slog.Error("Error creating playlist", "error", err)
 		return
 	}
-	fmt.Println("Playlist Response: ", response)
+	slog.Info("Melon Top 100 Response: ", "response", response)
 
 	var responsePayload MelonTop100Response
 	responsePayload.Status = response.Status
 
 	err = writeJSON(w, http.StatusOK, responsePayload)
 	if err != nil {
-		fmt.Println("Error writing JSON")
+		slog.Error("Error writing JSON", "error", err)
 		return
 	}
 }
@@ -146,13 +146,13 @@ func handleSaveMelonTop100DB(w http.ResponseWriter, r *http.Request, accessToken
 	// connect to server
 	conn, err := grpc.Dial("localhost:50002", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
-		fmt.Println("Error during gRPC dial")
+		slog.Error("Error during gRPC dial", "error", err)
 		return
 	}
 	defer func(conn *grpc.ClientConn) {
 		err := conn.Close()
 		if err != nil {
-
+			slog.Error("Error closing connection", "error", err)
 		}
 	}(conn)
 
@@ -166,7 +166,7 @@ func handleSaveMelonTop100DB(w http.ResponseWriter, r *http.Request, accessToken
 	})
 
 	if err != nil {
-		fmt.Printf("Error in handleSaveMelonTop100DB: %v\n", err)
+		slog.Error("Error in handleSaveMelonTop100DB", "error", err)
 		return
 	}
 
@@ -175,7 +175,7 @@ func handleSaveMelonTop100DB(w http.ResponseWriter, r *http.Request, accessToken
 
 	err = writeJSON(w, http.StatusOK, responsePayload)
 	if err != nil {
-		fmt.Println("Error writing JSON")
+		slog.Error("Error writing JSON", "error", err)
 		return
 	}
 }
@@ -183,20 +183,21 @@ func handleSaveMelonTop100DB(w http.ResponseWriter, r *http.Request, accessToken
 func handleGetMissedTracks(w http.ResponseWriter, r *http.Request, accessToken string, userID string) {
 	date := r.URL.Query().Get("date")
 	if date == "" {
+		slog.Error("Missing date parameter")
 		http.Error(w, "Missing date parameter", http.StatusBadRequest)
 		return
 	}
 
 	conn, client, ctx, cancel, err := connectToGRPCServer("localhost:50002")
 	if err != nil {
-		fmt.Println("Error during gRPC connection setup:", err)
+		slog.Error("Error during gRPC connection setup", "error", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 	defer func(conn *grpc.ClientConn) {
 		err := conn.Close()
 		if err != nil {
-			fmt.Println("[handleGetMissedTracks] - Error closing connection")
+			slog.Error("Error closing connection", "error", err)
 		}
 	}(conn)
 
@@ -208,6 +209,7 @@ func handleGetMissedTracks(w http.ResponseWriter, r *http.Request, accessToken s
 	})
 
 	if err != nil {
+		slog.Error("Error in handleGetMissedTracks", "error", err)
 		fmt.Printf("Error in handleGetMissedTracks: %v\n", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
@@ -215,7 +217,7 @@ func handleGetMissedTracks(w http.ResponseWriter, r *http.Request, accessToken s
 
 	err = writeJSON(w, http.StatusOK, response)
 	if err != nil {
-		fmt.Println("Error writing JSON")
+		slog.Error("Error writing JSON", "error", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -225,12 +227,14 @@ func handleResolveMissedTracks(w http.ResponseWriter, r *http.Request, accessTok
 
 	conn, client, ctx, cancel, err := connectToGRPCServer("localhost:50002")
 	if err != nil {
+		slog.Error("Error during gRPC connection setup", "error", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 	defer func(conn *grpc.ClientConn) {
 		err := conn.Close()
 		if err != nil {
+			slog.Error("Error closing connection", "error", err)
 			fmt.Println("[handleResolveMissedTracks] - Error closing connection")
 		}
 	}(conn)
@@ -239,6 +243,7 @@ func handleResolveMissedTracks(w http.ResponseWriter, r *http.Request, accessTok
 
 	var requestPayload ResolveMissedTracksRequest
 	if err := json.NewDecoder(r.Body).Decode(&requestPayload); err != nil {
+		slog.Error("Error decoding payload", "error", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -249,14 +254,14 @@ func handleResolveMissedTracks(w http.ResponseWriter, r *http.Request, accessTok
 	})
 
 	if err != nil {
-		fmt.Printf("Error in handleResolveMissedTracks: %v\n", err)
+		slog.Error("Error in handleResolveMissedTracks", "error", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	err = writeJSON(w, http.StatusOK, response)
 	if err != nil {
-		fmt.Println("Error writing JSON")
+		slog.Error("Error writing JSON", "error", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -267,6 +272,7 @@ func connectToGRPCServer(address string) (*grpc.ClientConn, proto.PlaylistServic
 	// Connect to the gRPC server
 	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
+		slog.Error("Error during gRPC dial", "error", err)
 		return nil, nil, nil, nil, fmt.Errorf("failed to connect to gRPC server: %w", err)
 	}
 

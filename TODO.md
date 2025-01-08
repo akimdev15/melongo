@@ -1,9 +1,6 @@
 ## TODO
-	1. Need to prevent adding duplicate songs to the playlist 
-	2. Try to write some tests to prevent a case where a song can't be found on spotify
-	3. If album isn't discovered, maybe add a code to check to get the track. It sometimes works when searching for the track type
-	4. Work on getting the top 100 list from melon and update playlist with the updated list.
-
+	1. Get all playlist from spotify and display
+		a. Be able to get the playlist id and use it to create playlist like melon top 100
 ## Commands
 
     SQLC Commands

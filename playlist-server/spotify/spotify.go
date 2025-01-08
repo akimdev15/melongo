@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -170,11 +171,9 @@ func SearchArtistID(artistName string, accessToken string) (ArtistItem, error) {
 
 	// Extract the Spotify ID of the first artist
 	if len(response.Artists.Items) <= 0 {
-		fmt.Println("Couldn't search for an Artist ID. response.Artist.Items is empty")
+		slog.Error("Couldn't search for an Artist ID. response.Artist.Items is empty")
 		return ArtistItem{}, nil
 	}
-
-	fmt.Printf("*** Artist Items: %v\n", response.Artists.Items[0])
 
 	artist := response.Artists.Items[0]
 	return artist, nil
@@ -208,7 +207,7 @@ func SearchTrack(title, artist, accessToken string) (*Track, error) {
 	body, err := makeSpotifyGetRequest(searchURL, accessToken)
 
 	if err != nil {
-		fmt.Println("Error making the request to the spotify")
+		slog.Error("Error making the request to the spotify")
 		return nil, err
 	}
 
@@ -216,12 +215,13 @@ func SearchTrack(title, artist, accessToken string) (*Track, error) {
 	var searchResp SearchResponse
 	err = json.Unmarshal(body, &searchResp)
 	if err != nil {
-		fmt.Printf("Error parsing the JSON response for title: %s, %v\n", title, err)
+		slog.Error("Error parsing the JSON response for title: ", title, "Error: ", err)
 		return nil, err
 	}
 
 	// Check if any tracks were found
 	if len(searchResp.Tracks.Items) == 0 {
+		slog.Info("No tracks found for", "title", title, " artist: ", artist)
 		return nil, fmt.Errorf("no tracks found for title: %s, artist: %s", title, artist)
 	}
 
@@ -237,6 +237,7 @@ func SearchTrack(title, artist, accessToken string) (*Track, error) {
 
 func SearchTracksFromAlbum(albumName, artistName, accessToken string) ([]AlbumTrack, error) {
 	if albumName == "" || artistName == "" || accessToken == "" {
+		slog.Error("album name, artist name, or access token is empty")
 		return nil, fmt.Errorf("album name, artist name, or access token is empty")
 	}
 
@@ -261,6 +262,7 @@ func SearchTracksFromAlbum(albumName, artistName, accessToken string) ([]AlbumTr
 	// Make the GET request to Spotify to search for albums
 	body, err := makeSpotifyGetRequest(searchURL, accessToken)
 	if err != nil {
+		slog.Error("Error making the request to Spotify: ", err)
 		return nil, fmt.Errorf("error making the request to Spotify: %v", err)
 	}
 
@@ -268,18 +270,19 @@ func SearchTracksFromAlbum(albumName, artistName, accessToken string) ([]AlbumTr
 	var searchResp SearchResponseAlbum
 	err = json.Unmarshal(body, &searchResp)
 	if err != nil {
+		slog.Error("Error parsing the JSON response for album: ", err)
 		return nil, fmt.Errorf("error parsing the JSON response for album: %v", err)
 	}
 
 	// Check if any albums were found
 	if len(searchResp.Albums.Items) == 0 {
 		// TODO - For sigle album, might want to search by track since it returns the result for track but not album for some
+		slog.Info("No albums found for", "album", albumName, " artist: ", artistName)
 		return nil, fmt.Errorf("no albums found for album: %s, artist: %s", albumName, artistName)
 	}
 
 	// Get the album ID from the first result
 	albumID := searchResp.Albums.Items[0].ID
-	fmt.Println("Album ID: ", albumID)
 
 	url := fmt.Sprintf("https://api.spotify.com/v1/albums/%s/tracks", albumID)
 	body, err = makeSpotifyGetRequest(url, accessToken)
@@ -291,12 +294,13 @@ func SearchTracksFromAlbum(albumName, artistName, accessToken string) ([]AlbumTr
 	var albumTracksResp AlbumTracksResponse
 	err = json.Unmarshal(body, &albumTracksResp)
 	if err != nil {
-		fmt.Println("Error parsing the JSON response for album tracks: ", err)
+		slog.Error("Error parsing the JSON response for album tracks: ", err)
 		return nil, err
 	}
 
 	// Check if any tracks were found
 	if len(albumTracksResp.Items) == 0 {
+		slog.Info("No tracks found for", "album", albumName, " artist: ", artistName)
 		return nil, fmt.Errorf("no tracks found for album: %s, artist: %s", albumName, artistName)
 	}
 
@@ -318,13 +322,14 @@ func CreateNewPlaylist(name string, description string, isPublic bool, userId st
 
 	body, err := json.Marshal(playlistRequest)
 	if err != nil {
-		fmt.Println("Error during json.Marshal of playlistRequest. Err: ", err)
+		slog.Error("Error during json.Marshal of playlistRequest. Err: ", err)
 		return NewPlaylistResponse{}, err
 	}
 
 	body, err = makeSpotifyPostRequest(address, body, accessToken)
 
 	if err != nil {
+		slog.Error("Error making the request to the spotify")
 		fmt.Println("Error making the request to the spotify")
 		return NewPlaylistResponse{}, err
 	}
@@ -332,11 +337,11 @@ func CreateNewPlaylist(name string, description string, isPublic bool, userId st
 	// Unmarshal JSON data into TracksResponse struct
 	var response NewPlaylistResponse
 	if err := json.Unmarshal(body, &response); err != nil {
-		fmt.Println("Error:", err)
+		slog.Error("Error:", err)
 		return NewPlaylistResponse{}, err
 	}
 
-	fmt.Println("Successfully searched the track")
+	slog.Info("Successfully created the new playlist")
 	return response, nil
 }
 
@@ -349,23 +354,23 @@ func AddTrackToPlaylist(playlistID string, trackURI []string, accessToken string
 		URIs: trackURI,
 	}
 
-	fmt.Println("TrackURI: ", len(trackURI))
+	slog.Info("TrackURI: ", len(trackURI))
 
 	body, err := json.Marshal(addTrackRequest)
 	if err != nil {
-		fmt.Println("Error during json.Marshal")
+		slog.Error("Error during json.Marshal")
 		return AddTrackResponse{}, err
 	}
 
 	body, err = makeSpotifyPostRequest(address, body, accessToken)
 	if err != nil {
-		fmt.Println("Error making the request to the spotify")
+		slog.Error("Error making the request to the spotify")
 		return AddTrackResponse{}, err
 	}
 
 	var response AddTrackResponse
 	if err := json.Unmarshal(body, &response); err != nil {
-		fmt.Println("Error during AddTrackResponse. Err: ", err)
+		slog.Error("Error during AddTrackResponse. Err: ", err)
 		return AddTrackResponse{}, err
 	}
 
@@ -380,7 +385,7 @@ func makeSpotifyGetRequest(address string, accessToken string) ([]byte, error) {
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 	req.Header.Set("Accept", "application/json; charset=utf-8")
 	if err != nil {
-		fmt.Printf("Error creating the request. Error: %v\n", err)
+		slog.Error("Error creating the request. Error: ", err)
 		return nil, err
 	}
 
@@ -388,20 +393,20 @@ func makeSpotifyGetRequest(address string, accessToken string) ([]byte, error) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error response. err: ", err)
+		slog.Error("Error response. err: ", err)
 		return nil, err
 	}
 
 	// Check HTTP status code
 	if resp.StatusCode != http.StatusOK {
-		fmt.Println("Error: Unexpected status code:", resp.Status)
+		slog.Error("Error: Unexpected status code:", resp.Status)
 		return nil, err
 	}
 
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
-			fmt.Println("error: ", err)
+			slog.Error("Error reading...")
 		}
 	}(resp.Body)
 
@@ -410,7 +415,7 @@ func makeSpotifyGetRequest(address string, accessToken string) ([]byte, error) {
 	// Read the response body
 	body, err := io.ReadAll(bodyReader)
 	if err != nil {
-		fmt.Println("Error reading the response body:", err)
+		slog.Error("Error reading the response body:", err)
 		return nil, err
 	}
 
@@ -421,7 +426,7 @@ func makeSpotifyGetRequest(address string, accessToken string) ([]byte, error) {
 func makeSpotifyPostRequest(address string, data []byte, accessToken string) ([]byte, error) {
 	req, err := http.NewRequest("POST", address, bytes.NewBuffer(data))
 	if err != nil {
-		fmt.Println("Error creating the request. Error: ", err)
+		slog.Error("Error creating the request. Error: ", err)
 		return nil, err
 	}
 
@@ -437,18 +442,19 @@ func makeSpotifyPostRequest(address string, data []byte, accessToken string) ([]
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
-			fmt.Println("Error reading...")
+			slog.Error("Error reading...")
 		}
 	}(resp.Body)
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		fmt.Println(resp)
+		slog.Error("Error: Unexpected", "status code", resp.Status)
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
 	//// Read response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		slog.Error("Error reading the response body:", err)
 		return nil, err
 	}
 
@@ -488,7 +494,7 @@ func formatArtistName(artist string) string {
 	parts := strings.SplitN(artist, "(", 2)
 
 	if len(parts) < 2 {
-		fmt.Println("Parts: ", parts)
+		slog.Error("Error splitting the artist name", "Parts: ", parts)
 		return artist
 	}
 
