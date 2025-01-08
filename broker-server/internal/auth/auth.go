@@ -2,6 +2,7 @@ package auth
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 )
@@ -14,6 +15,7 @@ func GetAPIKey(headers http.Header) (string, error) {
 	val := headers.Get("Authorization")
 
 	if val == "" {
+		slog.Error("No authentication info found")
 		return "", errors.New("no authentication info found")
 	}
 
@@ -23,6 +25,7 @@ func GetAPIKey(headers http.Header) (string, error) {
 	}
 
 	if vals[0] != "ApiKey" {
+		slog.Error("Malformed first part of auth header")
 		return "", errors.New("malfored first part of auth header")
 	}
 
@@ -33,15 +36,18 @@ func GetAccessToken(headers http.Header) (string, error) {
 	val := headers.Get("Authorization")
 
 	if val == "" {
+		slog.Error("No authentication info found")
 		return "", errors.New("no authentication info found")
 	}
 
 	vals := strings.Split(val, " ")
 	if len(vals) != 2 {
+		slog.Error("Malformed auth header")
 		return "", errors.New("malformed auth header")
 	}
 
 	if vals[0] != "Bearer" {
+		slog.Error("Malformed first part of auth header")
 		return "", errors.New("malfored first part of auth header")
 	}
 

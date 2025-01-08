@@ -9,9 +9,11 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -48,14 +50,16 @@ const gRPCPORT = "50001"
 func (app *apiConfig) grpcListen() {
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", gRPCPORT))
 	if err != nil {
-		log.Fatalf("Failed to listen for grpc %v", err)
+		slog.Error("Failed to listen for grpc", "error", err)
+		os.Exit(1)
 	}
 
 	grpcServer := grpc.NewServer()
 	proto.RegisterAuthServiceServer(grpcServer, &AuthServer{DB: app.DB, DBConn: app.DBConn})
 	log.Printf("gRPC Server started on port %s\n", gRPCPORT)
 	if err = grpcServer.Serve(lis); err != nil {
-		log.Fatalf("Failed to listen for grpc %v", err)
+		slog.Error("Failed to listen for grpc", "error", err)
+		os.Exit(1)
 	}
 }
 
@@ -67,16 +71,16 @@ func (authServer *AuthServer) AuthenticateUser(ctx context.Context, req *proto.A
 
 	userToken, err := authServer.DB.GetUserTokenByAccessToken(ctx, accessToken)
 	if err != nil {
-		fmt.Printf("Error getting user token from the DB. error: %v\n", err)
+		slog.Error("Error getting user token from the DB", "error", err)
 		return nil, err
 	}
 
 	tokenRefreshed := false
 	if userToken.ExpireTime.Before(time.Now().UTC()) {
-		fmt.Println("Access-Token expired. Getting a new token...")
+		slog.Info("Access-Token expired. Getting a new token...")
 		refreshToken, err := RefreshToken(userToken.RefreshToken, ctx)
 		if err != nil {
-			fmt.Printf("Error refreshing token: %v\n", err)
+			slog.Error("Error refreshing token", "error", err)
 			return nil, err
 		}
 
@@ -106,10 +110,11 @@ func (authServer *AuthServer) AuthenticateUser(ctx context.Context, req *proto.A
 		err = <-errCh
 
 		if err != nil {
-			fmt.Printf("Error updating the user token with the refresh token. Err: %v", err)
+			slog.Error("Error updating the user token with the refresh token", "error", err)
 			return nil, err
 		}
-		fmt.Println("Successfully updated the refresh token")
+
+		slog.Info("Successfully updated the refresh token")
 		tokenRefreshed = true
 	}
 
@@ -127,11 +132,10 @@ func (authServer *AuthServer) AuthenticateUser(ctx context.Context, req *proto.A
 // For initial login to the website
 func (authServer *AuthServer) AuthorizeUser(ctx context.Context, req *proto.AuthCallbackRequest) (*proto.AuthCallbackResponse, error) {
 	code := req.GetCode()
-	fmt.Println("Received gRPC call from broker-service")
 
 	token, err := exchangeCodeForToken(ctx, code)
 	if err != nil {
-		fmt.Println("Error exchanging code for token:", err)
+		slog.Error("Failed to exchange code for token", "error", err)
 		return nil, err
 	}
 
@@ -139,18 +143,18 @@ func (authServer *AuthServer) AuthorizeUser(ctx context.Context, req *proto.Auth
 	userInfoResponse, err := getUserFromSpotify(token.AccessToken)
 	if err != nil {
 		// TODO - need to handle error
-		fmt.Println("Failed to get userResponse.")
+		slog.Error("Failed to get userResponse.", "error", err)
+		return nil, err
 	}
-	fmt.Printf("UserInfoResponse: %v\n", userInfoResponse)
 
 	// Check if user already exists
 	savedUser, err := authServer.DB.GetUserById(ctx, userInfoResponse.UserID)
-	fmt.Printf("Existing user: %v", savedUser)
+	slog.Info("[AuthorizeUser] - Saved user", "user", savedUser)
 	if err == sql.ErrNoRows {
 		// Use transaction
 		tx, err := authServer.DBConn.Begin()
 		if err != nil {
-			fmt.Println("Failed creating DB transaction")
+			slog.Error("Failed creating DB transaction", "error", err)
 			return nil, err
 		}
 		defer tx.Rollback()
@@ -159,21 +163,21 @@ func (authServer *AuthServer) AuthorizeUser(ctx context.Context, req *proto.Auth
 		savedUser, err = authServer.createAndSaveUser(ctx, userInfoResponse, qtx)
 		if err != nil {
 			// TODO - need to handle error
-			fmt.Printf("Failed to create user. err: %v\n", err)
+			slog.Error("Failed to save user to the database", "error", err)
 			return nil, err
 		}
 
 		// save the token in the user_tokens db
 		err = authServer.createUserToken(ctx, token, savedUser.ApiKey, savedUser.ID, qtx)
 		if err != nil {
-			fmt.Printf("Failed to save token to db for the user: %s\n. err: %v\n", savedUser.ID, err)
+			slog.Error("Failed to save token to the database", "error", err)
 			return nil, err
 		}
 
 		// transaction succeeded
 		tx.Commit()
 	} else if err != nil {
-		fmt.Printf("Error checking for existing user. err: %v\n", err)
+		slog.Error("Error checking for existing user", "error", err)
 		return nil, err
 	} else {
 		// Should update the token info in the DB for the existing user with new token
@@ -185,7 +189,7 @@ func (authServer *AuthServer) AuthorizeUser(ctx context.Context, req *proto.Auth
 			ID:           savedUser.ID,
 		})
 		if err != nil {
-			fmt.Printf("Failed to update the token for the existing user: %s\n. err: %v\n", savedUser.ID, err)
+			slog.Error("Failed to update token in the database", "error", err)
 			return nil, err
 		}
 	}
@@ -223,6 +227,7 @@ func exchangeCodeForToken(ctx context.Context, code string) (*TokenResponse, err
 	// Prepare request
 	req, err := http.NewRequestWithContext(ctx, "POST", "https://accounts.spotify.com/api/token", strings.NewReader(data.Encode()))
 	if err != nil {
+		slog.Error("[exchangeCodeForToken] - Failed to create request", "error", err)
 		return nil, err
 	}
 	req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(clientID+":"+clientSecret)))
@@ -232,24 +237,28 @@ func exchangeCodeForToken(ctx context.Context, code string) (*TokenResponse, err
 	client := http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
+		slog.Error("[exchangeCodeForToken] - Failed to send request", "error", err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 
 	// Check response status code
 	if resp.StatusCode != http.StatusOK {
+		slog.Error("[exchangeCodeForToken] - Unexpected status code", "status", resp.StatusCode)
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
 	// Read response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		slog.Error("[exchangeCodeForToken] - Failed to read response body", "error", err)
 		return nil, err
 	}
 
 	// Parse JSON response
 	var tokenResp TokenResponse
 	if err := json.Unmarshal(body, &tokenResp); err != nil {
+		slog.Error("[exchangeCodeForToken] - Failed to parse JSON response", "error", err)
 		return nil, err
 	}
 
@@ -262,6 +271,7 @@ func getUserFromSpotify(accessToken string) (UserInfoResponse, error) {
 	userInfoResponse := UserInfoResponse{}
 	req, err := http.NewRequest("GET", "https://api.spotify.com/v1/me", nil)
 	if err != nil {
+		slog.Error("[getUserFromSpotify] - Failed to create request", "error", err)
 		return userInfoResponse, err
 	}
 	req.Header.Set("Authorization", "Bearer "+accessToken)
@@ -270,6 +280,7 @@ func getUserFromSpotify(accessToken string) (UserInfoResponse, error) {
 	client := http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
+		slog.Error("[getUserFromSpotify] - Failed to send request", "error", err)
 		return userInfoResponse, err
 	}
 	defer resp.Body.Close()
@@ -277,13 +288,14 @@ func getUserFromSpotify(accessToken string) (UserInfoResponse, error) {
 	// Read response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		slog.Error("[getUserFromSpotify] - Failed to read response body", "error", err)
 		return userInfoResponse, err
 	}
 
 	err = json.Unmarshal(body, &userInfoResponse)
 
 	if err != nil {
-		fmt.Printf("Error parsing JSON %s\n", err)
+		slog.Error("[getUserFromSpotify] - Failed to parse JSON response", "error", err)
 		return userInfoResponse, err
 	}
 
@@ -291,7 +303,6 @@ func getUserFromSpotify(accessToken string) (UserInfoResponse, error) {
 }
 
 func (authServer *AuthServer) createAndSaveUser(ctx context.Context, userInfoResponse UserInfoResponse, qtx *database.Queries) (database.User, error) {
-
 	createUserParams := database.CreateUserParams{
 		ID:        userInfoResponse.UserID,
 		CreatedAt: time.Now().UTC(),
@@ -303,18 +314,16 @@ func (authServer *AuthServer) createAndSaveUser(ctx context.Context, userInfoRes
 	// Save to the database
 	dbUser, err := qtx.CreateUser(ctx, createUserParams)
 	if err != nil {
-		// TODO - need to handle error here
-		fmt.Printf("Error creating the user %v.\n", dbUser)
+		slog.Error("Failed to save user to the database", "error", err)
 		return database.User{}, err
 	}
 
-	fmt.Printf("Successfully saved user to the database: %v\n", dbUser)
+	slog.Info("Successfully saved user to the database", "user", dbUser)
 	return dbUser, nil
 
 }
 
 func RefreshToken(refreshToken string, ctx context.Context) (SpotifyTokenResponse, error) {
-	fmt.Println("Refresh token: ", refreshToken)
 	// Construct the request body
 	data := url.Values{}
 	data.Set("grant_type", "refresh_token")
@@ -323,6 +332,7 @@ func RefreshToken(refreshToken string, ctx context.Context) (SpotifyTokenRespons
 	// Prepare request
 	req, err := http.NewRequestWithContext(ctx, "POST", "https://accounts.spotify.com/api/token", strings.NewReader(data.Encode()))
 	if err != nil {
+		slog.Error("Failed to create request", "error", err)
 		return SpotifyTokenResponse{}, fmt.Errorf("failed to create request: %w", err)
 	}
 
@@ -333,24 +343,27 @@ func RefreshToken(refreshToken string, ctx context.Context) (SpotifyTokenRespons
 	client := http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
+		slog.Error("Failed to send request", "error", err)
 		return SpotifyTokenResponse{}, fmt.Errorf("failed to send request: %w", err)
 	}
 	defer func() {
 		if resp != nil && resp.Body != nil {
 			err := resp.Body.Close()
 			if err != nil {
-				fmt.Printf("failed to close response body: %v\n", err)
+				slog.Error("Failed to close response body", "error", err)
 			}
 		}
 	}()
 
 	if resp.StatusCode != http.StatusOK {
+		slog.Error("Unexpected status code", "status", resp.StatusCode)
 		return SpotifyTokenResponse{}, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
 	//// Read response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		slog.Error("Failed to read response body", "error", err)
 		return SpotifyTokenResponse{}, err
 	}
 
@@ -358,7 +371,7 @@ func RefreshToken(refreshToken string, ctx context.Context) (SpotifyTokenRespons
 	err = json.Unmarshal(body, &tokenResponse)
 
 	if err != nil {
-		fmt.Printf("Error parsing JSON %s\n", err)
+		slog.Error("Error parsing JSON", "error", err)
 		return SpotifyTokenResponse{}, err
 	}
 

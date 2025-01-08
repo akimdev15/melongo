@@ -2,8 +2,7 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 
@@ -20,22 +19,23 @@ type apiConfig struct {
 const PORT = ":8082"
 
 func main() {
-	fmt.Println("Playlist Server")
-
 	err := godotenv.Load("config.env")
 	if err != nil {
-		log.Fatalf("Error loading .env file %v", err)
+		slog.Error("Error loading .env file", "error", err)
+		return
 	}
+
 	// Step 1.1: Setup Database
 	dbURL := os.Getenv("DB_URL")
 	if dbURL == "" {
-		log.Fatal("DB_URL is not found in the env file")
+		slog.Error("DB_URL is not found in the env file")
+		return
 	}
 
 	conn, err := sql.Open("postgres", dbURL)
 	if err != nil {
-		fmt.Printf("dbUrl: %s\n", dbURL)
-		log.Fatal("Can't connect to the database. err: ", err)
+		slog.Error("Can't connect to the database", "error", err)
+		return
 	}
 
 	db := database.New(conn)
@@ -52,11 +52,14 @@ func main() {
 	mux.HandleFunc("GET /testAlbum", apiCfg.testNewAlbumsHandler)
 	corsHandler := corsMiddleware(mux)
 
+	slog.Info("Listening on", "PORT", PORT)
+
 	err = http.ListenAndServe(PORT, corsHandler)
 	if err != nil {
-		log.Fatalf("Error starting the server %v", err)
+		slog.Error("Error starting the server", "error", err)
 		return
 	}
+
 }
 
 func corsMiddleware(next http.Handler) http.Handler {

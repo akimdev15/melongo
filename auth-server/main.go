@@ -2,8 +2,7 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 
@@ -36,18 +35,20 @@ func main() {
 	// Step 1: Get client info
 	err := godotenv.Load("config.env")
 	if err != nil {
-		log.Fatalf("Error loading .env file %v", err)
+		slog.Error("Error loading .env file", "error", err)
+		os.Exit(1)
 	}
 	// Step 1.1: Setup Database
 	dbURL := os.Getenv("DB_URL")
 	if dbURL == "" {
-		log.Fatal("DB_URL is not found in the env file")
+		slog.Error("DB_URL is not found in the env file")
+		os.Exit(1)
 	}
 
 	conn, err := sql.Open("postgres", dbURL)
 	if err != nil {
-		fmt.Printf("dbUrl: %s\n", dbURL)
-		log.Fatal("Can't connect to the database. err: ", err)
+		slog.Error("Can't connect to the database", "error", err)
+		os.Exit(1)
 	}
 
 	db := database.New(conn)
@@ -60,17 +61,18 @@ func main() {
 	clientSecret = os.Getenv("ClientSecret")
 	RedirectURI = os.Getenv("RedirectURI")
 	if clientID == "" || clientSecret == "" || RedirectURI == "" {
-		log.Fatal("")
+		slog.Error("ClientID, ClientSecret, RedirectURI are not found in the env file")
+		os.Exit(1)
 	}
 
 	// Start gRPC server
 	go apiCfg.grpcListen()
 
 	// Start http server
-	fmt.Println("Server listening on port ", PORT)
+	slog.Info("Listening on", "PORT", PORT)
 	err = http.ListenAndServe(PORT, nil)
 	if err != nil {
-		log.Fatalf("Error starting the server %v", err)
-		return
+		slog.Error("Error starting the server", "error", err)
+		os.Exit(1)
 	}
 }

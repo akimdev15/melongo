@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
@@ -25,7 +25,8 @@ type UserCreatedPayload struct {
 func main() {
 	err := godotenv.Load("config.env")
 	if err != nil {
-		log.Fatalf("Error loading .env file %v", err)
+		slog.Error("Error loading .env file", "error", err)
+		os.Exit(1)
 	}
 
 	mux := http.NewServeMux()
@@ -76,7 +77,7 @@ func handleSpotifyCallback(w http.ResponseWriter, r *http.Request) {
 	// connect to server
 	conn, err := grpc.Dial("localhost:50001", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
-		fmt.Println("Error during gRPC dial")
+		slog.Error("Error during gRPC dial", "error", err)
 		return
 	}
 	defer conn.Close()

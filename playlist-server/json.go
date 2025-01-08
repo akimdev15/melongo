@@ -2,8 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 )
 
@@ -12,7 +11,7 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	data, err := json.Marshal(payload)
 
 	if err != nil {
-		log.Printf("Failed to martial JSON resposne: %v", payload)
+		slog.Error("Failed to marshal JSON response", "error", err)
 		w.WriteHeader(500)
 		return
 	}
@@ -21,7 +20,7 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	w.WriteHeader(code)
 	_, err = w.Write(data)
 	if err != nil {
-		fmt.Println("Failed to write to the response")
+		slog.Error("Failed to write to the response", "error", err)
 		return
 	}
 }
@@ -31,7 +30,7 @@ func respondWithError(w http.ResponseWriter, code int, msg string) {
 	// error in 400's are all client errors
 	// using the api in a weird way
 	if code > 499 {
-		log.Println("Responding with 5XX error: ", msg)
+		slog.Error("Responding with 5XX error: ", "error", msg)
 	}
 	type errResponse struct {
 		Error string `json:"error"`
