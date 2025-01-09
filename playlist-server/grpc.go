@@ -69,6 +69,46 @@ func (playlistServer *PlaylistServer) CreatePlaylist(ctx context.Context, req *p
 
 }
 
+func (playlistServer *PlaylistServer) GetUserPlaylists(ctx context.Context, req *proto.GetUserPlaylistsRequest) (*proto.GetUserPlaylistsResponse, error) {
+	// Fetch all user's playlists from Spotify
+	playlistsResp, err := spotify.GetUserPlaylists(req.AccessToken)
+	if err != nil {
+		slog.Error("Error getting user playlists", "error", err)
+		return nil, err
+	}
+
+	// URL endpoint to get the next set of playlists if there are more
+	nextPageURL := playlistsResp.Next
+	totalPlaylists := int32(playlistsResp.Total)
+
+	var protoPlaylists []*proto.Playlist
+	for _, playlist := range playlistsResp.Items {
+
+		var imageURL string
+		if len(playlist.Images) > 0 {
+			imageURL = playlist.Images[0].Url
+		}
+
+		protoPlaylists = append(protoPlaylists, &proto.Playlist{
+			PlaylistPageURL:          playlist.ExternalURLs.SpotifyURL, // Opens spotify
+			DetailedPlaylistEndpoint: playlist.PlaylistEndpoint,
+			Name:                     playlist.Name,
+			Description:              playlist.Description,
+			SpotifyPlaylistID:        playlist.ID,
+			ImageUrl:                 imageURL,
+			TotalTracks:              int32(playlist.Tracks.Total),
+			TracksEnpoint:            playlist.Tracks.TracksEndpoint,
+		})
+	}
+
+	slog.Info("Fetched user playlists", "totalPlaylists", totalPlaylists)
+
+	return &proto.GetUserPlaylistsResponse{
+		Playlists:   protoPlaylists,
+		NextPageURL: nextPageURL,
+	}, nil
+}
+
 func (PlaylistServer *PlaylistServer) CreateMelonTop100(ctx context.Context, req *proto.CreateMelonTop100Request) (*proto.CreateMelonTop100Response, error) {
 	date, err := time.Parse("2006-01-02", req.Date)
 	if err != nil {
@@ -341,3 +381,41 @@ func getKST() time.Time {
 	}
 	return time.Now().In(loc)
 }
+
+// convertSpotifyPlaylistToProtoPlaylist converts a Spotify playlist to a proto playlist
+func (playlistServer *PlaylistServer) convertSpotifyPlaylistToProtoPlaylist(playlistObj spotify.SimplifiedPlaylist, wg *sync.WaitGroup, mu *sync.Mutex, protoPlaylists *[]*proto.Playlist) {
+}
+
+// This can be used when fetching Tracks from the playlists response using the TracksURL
+// func (playlistServer *PlaylistServer) convertSpotifyPlaylistToProtoPlaylist(playlistObj spotify.SimplifiedPlaylist, wg *sync.WaitGroup, mu *sync.Mutex, protoPlaylists *[]*proto.Playlist) {
+// 	defer wg.Done()
+
+// 	playlist := playlistObj.Items
+
+// 	var imageURL string
+// 	if len(playlist.Images) > 0 {
+// 		imageURL = playlist.Images[0].Url
+// 	}
+
+// 	// Convert tracks inside the playlist to proto tracks
+// 	tracks := make([]*proto.Track, 0, playlist.Tracks.Total)
+// 	for item := range playlist.Tracks.Item {
+// 		track := playlist.Tracks.Item[item].Track
+// 		tracks = append(tracks, &proto.Track{
+// 			Title:      track.Name,
+// 			Artist:     track.Artists[0].Name,
+// 			Popularity: int32(track.Popularity),
+// 			Uri:        track.URI,
+// 		})
+// 	}
+
+// 	mu.Lock()
+// 	*protoPlaylists = append(*protoPlaylists, &proto.Playlist{
+// 		Name:              playlist.Name,
+// 		Description:       playlist.Description,
+// 		SpotifyPlaylistID: playlist.ID,
+// 		ImageUrl:          imageURL,
+// 		Tracks:            tracks,
+// 	})
+// 	mu.Unlock()
+// }

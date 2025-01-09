@@ -1,0 +1,85 @@
+.home-container {
+    padding: 20px;
+    background-color: #121212;
+    color: white;
+}
+
+.page-title {
+    font-size: 2em;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.playlist-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    justify-items: center;
+}
+
+.playlist-card {
+    background-color: #1f1f1f;
+    border-radius: 8px;
+    overflow: hidden;
+    width: 250px;
+    transition: transform 0.3s;
+}
+
+.playlist-card:hover {
+    transform: scale(1.05);
+}
+
+.playlist-image {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+}
+
+.playlist-info {
+    padding: 10px;
+}
+
+.playlist-name {
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+.playlist-description {
+    font-size: 0.9em;
+    color: #b3b3b3;
+}
+
+.expanded-details {
+    margin-top: 10px;
+}
+
+.playlist-url {
+    color: #1db954;
+    text-decoration: none;
+}
+
+.fetch-detailed-tracks-button {
+    background-color: #1db954;
+    border: none;
+    padding: 10px;
+    color: white;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.fetch-detailed-tracks-button:hover {
+    background-color: #1aa34a;
+}
+
+.expand-button {
+    background-color: #333;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.expand-button:hover {
+    background-color: #444;
+}

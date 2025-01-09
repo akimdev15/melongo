@@ -267,6 +267,40 @@ func handleResolveMissedTracks(w http.ResponseWriter, r *http.Request, accessTok
 	}
 }
 
+func handleGetPlaylists(w http.ResponseWriter, r *http.Request, accessToken string, userID string) {
+	conn, client, ctx, cancel, err := connectToGRPCServer("localhost:50002")
+	if err != nil {
+		slog.Error("Error during gRPC connection setup", "error", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	defer func(conn *grpc.ClientConn) {
+		err := conn.Close()
+		if err != nil {
+			slog.Error("Error closing connection", "error", err)
+		}
+	}(conn)
+
+	defer cancel()
+
+	response, err := client.GetUserPlaylists(ctx, &proto.GetUserPlaylistsRequest{
+		AccessToken: accessToken,
+	})
+
+	if err != nil {
+		slog.Error("Error in handleGetPlaylists", "error", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	err = writeJSON(w, http.StatusOK, response)
+	if err != nil {
+		slog.Error("Error writing JSON", "error", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+}
+
 // ---------- HELPER FUNCTIONS ----------
 func connectToGRPCServer(address string) (*grpc.ClientConn, proto.PlaylistServiceClient, context.Context, context.CancelFunc, error) {
 	// Connect to the gRPC server

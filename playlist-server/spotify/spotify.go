@@ -12,10 +12,49 @@ import (
 	"unicode"
 )
 
+type Image struct {
+	Url    string `json:"url"`
+	Height int    `json:"height"`
+	Width  int    `json:"width"`
+}
+
+// Playlist - for getting detailed information of a single playlist
 type Playlist struct {
-	Name string `json:"name"`
-	ID   string `json:"id"`
-	// Add other playlist fields you want to extract
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	ID          string  `json:"id"`
+	Images      []Image `json:"images"`
+	Tracks      struct {
+		Total int `json:"total"`
+		Item  []struct {
+			Track struct {
+				Artists    []Artist `json:"artists"`
+				Name       string   `json:"name"`
+				Popularity int      `json:"popularity"`
+				URI        string   `json:"uri"`
+			} `json:"track"`
+		} `json:"items"`
+	} `json:"tracks"`
+}
+
+// SimplifiedPlaylist - Used when fetching all the playlists of the user
+type SimplifiedPlaylist struct {
+	Next  string     `json:"next"`  // URL to the next page of items
+	Total int        `json:"total"` // Total number of items available
+	Items []struct { // Items is now a slice of playlists
+		ExternalURLs struct {
+			SpotifyURL string `json:"spotify"`
+		} `json:"external_urls"`
+		PlaylistEndpoint string  `json:"href"` // URL endpoint to get playlist details
+		Name             string  `json:"name"`
+		Description      string  `json:"description"`
+		ID               string  `json:"id"`
+		Images           []Image `json:"images"`
+		Tracks           struct {
+			TracksEndpoint string `json:"href"`  // URL endpoint to get full tracks of the playlist
+			Total          int    `json:"total"` // Total number of tracks in the playlist
+		} `json:"tracks"`
+	} `json:"items"`
 }
 
 type ExternalURLs struct {
@@ -36,9 +75,10 @@ type Album struct {
 }
 
 type Track struct {
-	Artist string
-	URI    string `json:"uri"`
-	Name   string `json:"name"`
+	Artist     string
+	URI        string `json:"uri"`
+	Name       string `json:"name"`
+	Popularity int    `json:"popularity"`
 }
 
 // Contains artist names in an array (in case there are more than one)
@@ -58,7 +98,8 @@ type SearchResponse struct {
 			Artists []struct {
 				Name string `json:"name"`
 			} `json:"artists"`
-			URI string `json:"uri"`
+			URI        string `json:"uri"`
+			Popularity int    `json:"popularity"`
 		} `json:"items"`
 	} `json:"tracks"`
 }
@@ -130,25 +171,40 @@ type AddTrackResponse struct {
 	SnapshotID string `json:"snapshot_id"`
 }
 
-// GetUserPlaylists gets all the user's playlist names
-func GetUserPlaylists(accessToken string) ([]Playlist, error) {
+// TODO - need  to check
+func GetPlaylistDetails(accessToken string, userId string) (*Playlist, error) {
 	// Prepare request
-	address := "https://api.spotify.com/v1/me/playlists"
+	address := fmt.Sprintf("https://api.spotify.com/v1/users/%s/playlists", userId)
 	body, err := makeSpotifyGetRequest(address, accessToken)
 	if err != nil {
 		return nil, err
 	}
 
-	// Parse JSON response
-	var playlistsResponse struct {
-		Items []Playlist `json:"items"`
-	}
-	err = json.Unmarshal(body, &playlistsResponse)
+	var playlistResponse *Playlist
+	err = json.Unmarshal(body, &playlistResponse)
 	if err != nil {
 		return nil, err
 	}
 
-	return playlistsResponse.Items, nil
+	return playlistResponse, nil
+}
+
+// GetUserPlaylists gets all the current user's playlist
+func GetUserPlaylists(accessToken string) (*SimplifiedPlaylist, error) {
+	// Prepare request
+	address := "https://api.spotify.com/v1/me/playlists?limit=50"
+	body, err := makeSpotifyGetRequest(address, accessToken)
+	if err != nil {
+		return nil, err
+	}
+
+	var playlistResponse *SimplifiedPlaylist
+	err = json.Unmarshal(body, &playlistResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	return playlistResponse, nil
 }
 
 func SearchArtistID(artistName string, accessToken string) (ArtistItem, error) {
@@ -215,7 +271,7 @@ func SearchTrack(title, artist, accessToken string) (*Track, error) {
 	var searchResp SearchResponse
 	err = json.Unmarshal(body, &searchResp)
 	if err != nil {
-		slog.Error("Error parsing the JSON response for title: ", title, "Error: ", err)
+		slog.Error("Error parsing the JSON response for", "title: ", title, "Error: ", err)
 		return nil, err
 	}
 
@@ -227,11 +283,13 @@ func SearchTrack(title, artist, accessToken string) (*Track, error) {
 
 	// Return the URI of the first matching track
 	trackURI := searchResp.Tracks.Items[0].URI
+	popularity := searchResp.Tracks.Items[0].Popularity
 
 	return &Track{
-		Artist: artist,
-		Name:   formattedTitle,
-		URI:    trackURI,
+		Artist:     artist,
+		Name:       formattedTitle,
+		URI:        trackURI,
+		Popularity: popularity,
 	}, nil
 }
 

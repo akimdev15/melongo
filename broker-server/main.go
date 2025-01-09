@@ -35,7 +35,7 @@ func main() {
 	mux.HandleFunc("GET /authorize", handleAuthorization)
 	mux.HandleFunc("GET /callback", handleSpotifyCallback)
 	mux.HandleFunc("GET /missedTracks", middlewareAuth(handleGetMissedTracks))
-	mux.HandleFunc("POST /handle", middlewareAuth(handleSubmission))
+	mux.HandleFunc("GET /playlists", middlewareAuth(handleGetPlaylists))
 	mux.HandleFunc("POST /createPlaylist", middlewareAuth(handleCreatePlaylist))
 	mux.HandleFunc("POST /melonTop100/create", middlewareAuth(handleMelonTop100))
 	mux.HandleFunc("POST /melonTop100/save", middlewareAuth(handleSaveMelonTop100DB))
@@ -43,7 +43,7 @@ func main() {
 
 	corsHandler := corsMiddleware(mux)
 
-	fmt.Printf("Listening on port%s", PORT)
+	slog.Info("Starting server on", "PORT", PORT)
 	err = http.ListenAndServe(PORT, corsHandler)
 	if err != nil {
 		return
@@ -106,14 +106,8 @@ func handleSpotifyCallback(w http.ResponseWriter, r *http.Request) {
 		MaxAge:   7200, // Expiry time (2 hour here)
 	})
 
-	redirectURL := fmt.Sprintf("http://localhost:5173/dashboard?access_token=%s", response.AccessToken)
+	redirectURL := fmt.Sprintf("http://localhost:5173?access_token=%s", response.AccessToken)
 	http.Redirect(w, r, redirectURL, http.StatusFound) // 302 Redirect
-}
-
-func handleSubmission(w http.ResponseWriter, r *http.Request, accessToken string, userID string) {
-	fmt.Println("Hit Handle Submission")
-	fmt.Printf("Access Token: %s\n", accessToken)
-	fmt.Printf("UserID: %s\n", userID)
 }
 
 // NOT USED ANY MORE
