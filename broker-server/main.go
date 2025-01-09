@@ -35,6 +35,7 @@ func main() {
 	mux.HandleFunc("GET /authorize", handleAuthorization)
 	mux.HandleFunc("GET /callback", handleSpotifyCallback)
 	mux.HandleFunc("GET /missedTracks", middlewareAuth(handleGetMissedTracks))
+	mux.HandleFunc("GET /playlist/tracks", middlewareAuth(handleGetPlaylistTracks))
 	mux.HandleFunc("GET /playlists", middlewareAuth(handleGetPlaylists))
 	mux.HandleFunc("POST /createPlaylist", middlewareAuth(handleCreatePlaylist))
 	mux.HandleFunc("POST /melonTop100/create", middlewareAuth(handleMelonTop100))
@@ -106,7 +107,7 @@ func handleSpotifyCallback(w http.ResponseWriter, r *http.Request) {
 		MaxAge:   7200, // Expiry time (2 hour here)
 	})
 
-	redirectURL := fmt.Sprintf("http://localhost:5173?access_token=%s", response.AccessToken)
+	redirectURL := "http://localhost:5173"
 	http.Redirect(w, r, redirectURL, http.StatusFound) // 302 Redirect
 }
 

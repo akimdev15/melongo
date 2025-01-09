@@ -207,6 +207,32 @@ func GetUserPlaylists(accessToken string) (*SimplifiedPlaylist, error) {
 	return playlistResponse, nil
 }
 
+type PlaylistTracksResponse struct {
+	Items []struct {
+		Track struct {
+			Artists    []Artist `json:"artists"`
+			Name       string   `json:"name"`
+			Popularity int      `json:"popularity"`
+			URI        string   `json:"uri"`
+		} `json:"track"`
+	} `json:"items"`
+}
+
+func GetUserPlaylistTracks(accessToken string, address string) (*PlaylistTracksResponse, error) {
+	body, err := makeSpotifyGetRequest(address, accessToken)
+	if err != nil {
+		return nil, err
+	}
+
+	var playlistResponse *PlaylistTracksResponse
+	err = json.Unmarshal(body, &playlistResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	return playlistResponse, nil
+}
+
 func SearchArtistID(artistName string, accessToken string) (ArtistItem, error) {
 	encodedArtistName := url.QueryEscape(artistName)
 	// Construct the search query for the artist
@@ -451,7 +477,7 @@ func makeSpotifyGetRequest(address string, accessToken string) ([]byte, error) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		slog.Error("Error response. err: ", err)
+		slog.Error("Error response.", "err", err, "address", address)
 		return nil, err
 	}
 

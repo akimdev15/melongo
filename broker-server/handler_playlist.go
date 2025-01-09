@@ -301,6 +301,48 @@ func handleGetPlaylists(w http.ResponseWriter, r *http.Request, accessToken stri
 	}
 }
 
+func handleGetPlaylistTracks(w http.ResponseWriter, r *http.Request, accessToken string, userID string) {
+	tracksEnpoint := r.URL.Query().Get("endpoint")
+	if tracksEnpoint == "" {
+		slog.Error("Missing tracksEnpoint parameter")
+		http.Error(w, "Missing tracksEnpoint parameter", http.StatusBadRequest)
+		return
+	}
+
+	conn, client, ctx, cancel, err := connectToGRPCServer("localhost:50002")
+	if err != nil {
+		slog.Error("Error during gRPC connection setup", "error", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	defer func(conn *grpc.ClientConn) {
+		err := conn.Close()
+		if err != nil {
+			slog.Error("Error closing connection", "error", err)
+		}
+	}(conn)
+
+	defer cancel()
+
+	response, err := client.GetUserPlaylistTracks(ctx, &proto.GetUserPlaylistTracksRequest{
+		AccessToken:    accessToken,
+		TracksEndpoint: tracksEnpoint,
+	})
+
+	if err != nil {
+		slog.Error("Error in handleGetPlaylistTracks", "error", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	err = writeJSON(w, http.StatusOK, response)
+	if err != nil {
+		slog.Error("Error writing JSON", "error", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+}
+
 // ---------- HELPER FUNCTIONS ----------
 func connectToGRPCServer(address string) (*grpc.ClientConn, proto.PlaylistServiceClient, context.Context, context.CancelFunc, error) {
 	// Connect to the gRPC server

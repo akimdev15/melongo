@@ -88,7 +88,7 @@ message Playlist {
 	string spotifyPlaylistID = 7;
 	string imageUrl = 8;
 	int32 totalTracks = 9;
-	string tracksEnpoint = 10;
+	string tracksEndpoint = 10;
 }
 
 message GetUserPlaylistsResponse {
@@ -96,11 +96,20 @@ message GetUserPlaylistsResponse {
 	string nextPageURL = 2;
 }
 
-message Track {
+message PlaylistTrack {
 	string title = 1;
 	string artist = 2;
 	int32 popularity = 3;
 	string uri = 4;
+}
+
+message GetUserPlaylistTracksRequest {
+	string accessToken = 1;
+	string tracksEndpoint = 2;
+}
+
+message GetUserPlaylistTracksResponse {
+	repeated PlaylistTrack playlistTracks = 1;
 }
 
 service PlaylistService {
@@ -110,4 +119,5 @@ service PlaylistService {
 	rpc GetMissedTracks(GetMissedTracksRequest) returns (GetMissedTrackResponse);
 	rpc ResolveMissedTracks(ResolveMissedTracksRequest) returns (ResolveMissedTracksResponse);
 	rpc GetUserPlaylists(GetUserPlaylistsRequest) returns (GetUserPlaylistsResponse);
+	rpc GetUserPlaylistTracks(GetUserPlaylistTracksRequest) returns (GetUserPlaylistTracksResponse);
 }
