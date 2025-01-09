@@ -1,11 +1,11 @@
 import React, { useEffect } from "react";
 import ReactDOM from 'react-dom/client';  // Updated import for React 18
 import { BrowserRouter as Router, Route, Routes, useNavigate } from 'react-router-dom';
-import App from './App';
 import './styles/theme.css';
 import Dashboard from "./components/Dashbooard";
 import LoginPage from "./components/LoginPage";
 import CreatePlaylist from "./components/CreatePlaylist";
+import Home from "./pages/Home";
 
 const Main: React.FC = () => {
   const navigate = useNavigate(); // useNavigate hook allows us to navigate programmatically
@@ -22,7 +22,7 @@ const Main: React.FC = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<App />} />
+      <Route path="/" element={<Home />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/createPlaylist" element={<CreatePlaylist />} />
       <Route path="/dashboard" element={<Dashboard />} />

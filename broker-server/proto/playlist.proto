@@ -73,10 +73,41 @@ message ResolveMissedTracksResponse {
 	string status = 1;
 }
 
+message GetUserPlaylistsRequest {
+	string accessToken = 1;
+}
+
+
+message Playlist {
+	string next = 1;
+	int32 total = 2;
+	string playlistPageURL = 3;
+	string detailedPlaylistEndpoint = 4;
+	string name = 5;
+	string description = 6;
+	string spotifyPlaylistID = 7;
+	string imageUrl = 8;
+	int32 totalTracks = 9;
+	string tracksEnpoint = 10;
+}
+
+message GetUserPlaylistsResponse {
+	repeated Playlist playlists = 1;
+	string nextPageURL = 2;
+}
+
+message Track {
+	string title = 1;
+	string artist = 2;
+	int32 popularity = 3;
+	string uri = 4;
+}
+
 service PlaylistService {
 	rpc CreatePlaylist(CreatePlaylistRequest) returns (CreatePlaylistResponse);
 	rpc CreateMelonTop100(CreateMelonTop100Request) returns (CreateMelonTop100Response);
 	rpc SaveMelonTop100DB(SaveMelonTop100DBRequest) returns (SaveMelonTop100DBResponse);
 	rpc GetMissedTracks(GetMissedTracksRequest) returns (GetMissedTrackResponse);
 	rpc ResolveMissedTracks(ResolveMissedTracksRequest) returns (ResolveMissedTracksResponse);
+	rpc GetUserPlaylists(GetUserPlaylistsRequest) returns (GetUserPlaylistsResponse);
 }

@@ -24,6 +24,7 @@ const (
 	PlaylistService_SaveMelonTop100DB_FullMethodName   = "/proto.PlaylistService/SaveMelonTop100DB"
 	PlaylistService_GetMissedTracks_FullMethodName     = "/proto.PlaylistService/GetMissedTracks"
 	PlaylistService_ResolveMissedTracks_FullMethodName = "/proto.PlaylistService/ResolveMissedTracks"
+	PlaylistService_GetUserPlaylists_FullMethodName    = "/proto.PlaylistService/GetUserPlaylists"
 )
 
 // PlaylistServiceClient is the client API for PlaylistService service.
@@ -35,6 +36,7 @@ type PlaylistServiceClient interface {
 	SaveMelonTop100DB(ctx context.Context, in *SaveMelonTop100DBRequest, opts ...grpc.CallOption) (*SaveMelonTop100DBResponse, error)
 	GetMissedTracks(ctx context.Context, in *GetMissedTracksRequest, opts ...grpc.CallOption) (*GetMissedTrackResponse, error)
 	ResolveMissedTracks(ctx context.Context, in *ResolveMissedTracksRequest, opts ...grpc.CallOption) (*ResolveMissedTracksResponse, error)
+	GetUserPlaylists(ctx context.Context, in *GetUserPlaylistsRequest, opts ...grpc.CallOption) (*GetUserPlaylistsResponse, error)
 }
 
 type playlistServiceClient struct {
@@ -90,6 +92,15 @@ func (c *playlistServiceClient) ResolveMissedTracks(ctx context.Context, in *Res
 	return out, nil
 }
 
+func (c *playlistServiceClient) GetUserPlaylists(ctx context.Context, in *GetUserPlaylistsRequest, opts ...grpc.CallOption) (*GetUserPlaylistsResponse, error) {
+	out := new(GetUserPlaylistsResponse)
+	err := c.cc.Invoke(ctx, PlaylistService_GetUserPlaylists_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PlaylistServiceServer is the server API for PlaylistService service.
 // All implementations must embed UnimplementedPlaylistServiceServer
 // for forward compatibility
@@ -99,6 +110,7 @@ type PlaylistServiceServer interface {
 	SaveMelonTop100DB(context.Context, *SaveMelonTop100DBRequest) (*SaveMelonTop100DBResponse, error)
 	GetMissedTracks(context.Context, *GetMissedTracksRequest) (*GetMissedTrackResponse, error)
 	ResolveMissedTracks(context.Context, *ResolveMissedTracksRequest) (*ResolveMissedTracksResponse, error)
+	GetUserPlaylists(context.Context, *GetUserPlaylistsRequest) (*GetUserPlaylistsResponse, error)
 	mustEmbedUnimplementedPlaylistServiceServer()
 }
 
@@ -120,6 +132,9 @@ func (UnimplementedPlaylistServiceServer) GetMissedTracks(context.Context, *GetM
 }
 func (UnimplementedPlaylistServiceServer) ResolveMissedTracks(context.Context, *ResolveMissedTracksRequest) (*ResolveMissedTracksResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ResolveMissedTracks not implemented")
+}
+func (UnimplementedPlaylistServiceServer) GetUserPlaylists(context.Context, *GetUserPlaylistsRequest) (*GetUserPlaylistsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserPlaylists not implemented")
 }
 func (UnimplementedPlaylistServiceServer) mustEmbedUnimplementedPlaylistServiceServer() {}
 
@@ -224,6 +239,24 @@ func _PlaylistService_ResolveMissedTracks_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PlaylistService_GetUserPlaylists_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserPlaylistsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PlaylistServiceServer).GetUserPlaylists(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PlaylistService_GetUserPlaylists_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PlaylistServiceServer).GetUserPlaylists(ctx, req.(*GetUserPlaylistsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PlaylistService_ServiceDesc is the grpc.ServiceDesc for PlaylistService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -250,6 +283,10 @@ var PlaylistService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ResolveMissedTracks",
 			Handler:    _PlaylistService_ResolveMissedTracks_Handler,
+		},
+		{
+			MethodName: "GetUserPlaylists",
+			Handler:    _PlaylistService_GetUserPlaylists_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
