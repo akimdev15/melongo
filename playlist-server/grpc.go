@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -97,7 +98,7 @@ func (playlistServer *PlaylistServer) GetUserPlaylists(ctx context.Context, req 
 			SpotifyPlaylistID:        playlist.ID,
 			ImageUrl:                 imageURL,
 			TotalTracks:              int32(playlist.Tracks.Total),
-			TracksEnpoint:            playlist.Tracks.TracksEndpoint,
+			TracksEndpoint:           playlist.Tracks.TracksEndpoint,
 		})
 	}
 
@@ -219,6 +220,37 @@ func (playlistServer *PlaylistServer) ResolveMissedTracks(ctx context.Context, r
 
 	return &proto.ResolveMissedTracksResponse{
 		Status: "Resolving missed tracks asynchronously",
+	}, nil
+}
+
+func (PlaylistServer *PlaylistServer) GetUserPlaylistTracks(ctx context.Context, req *proto.GetUserPlaylistTracksRequest) (*proto.GetUserPlaylistTracksResponse, error) {
+	playlistTracks, err := spotify.GetUserPlaylistTracks(req.AccessToken, req.TracksEndpoint)
+	if err != nil {
+		return nil, fmt.Errorf("error getting playlist tracks: %v", err)
+	}
+
+	// Convert the tracks to proto tracks
+	var protoTracks []*proto.PlaylistTrack
+	for _, trackObj := range playlistTracks.Items {
+		track := trackObj.Track
+		var artistNameBuilder strings.Builder
+		artistsLen := len(track.Artists)
+		for i, artist := range track.Artists {
+			artistNameBuilder.WriteString(artist.Name)
+			if i < artistsLen-1 {
+				artistNameBuilder.WriteString(", ")
+			}
+		}
+		protoTracks = append(protoTracks, &proto.PlaylistTrack{
+			Title:      track.Name,
+			Artist:     artistNameBuilder.String(),
+			Popularity: int32(track.Popularity),
+			Uri:        track.URI,
+		})
+	}
+
+	return &proto.GetUserPlaylistTracksResponse{
+		PlaylistTracks: protoTracks,
 	}, nil
 }
 

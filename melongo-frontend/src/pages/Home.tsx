@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Home.css';
 
-// Type definitions based on your new structure
+// Type definitions
 interface Track {
   title: string;
   artist: string;
@@ -27,7 +27,10 @@ const Home: React.FC = () => {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  const [expandedPlaylist, setExpandedPlaylist] = useState<string | null>(null); // To handle expanding playlist cards
+  const [expandedPlaylist, setExpandedPlaylist] = useState<string | null>(null);
+  const [nextPageUrl, setNextPageUrl] = useState<string | null>(null);
+  const [detailedTracks, setDetailedTracks] = useState<Track[]>([]); // New state for tracks
+  const [showModal, setShowModal] = useState<boolean>(false); // State to toggle modal visibility
 
   // Fetch user's playlists
   useEffect(() => {
@@ -38,8 +41,8 @@ const Home: React.FC = () => {
         const response = await axios.get('http://localhost:8080/playlists', {
           withCredentials: true,
         });
-        console.log(response);
-        setPlaylists(response.data.playlists); // Assuming response is in the structure `GetUserPlaylistsResponse`
+        setPlaylists(response.data.playlists);
+        setNextPageUrl(response.data.nextPageUrl);
       } catch (err) {
         setError('Failed to fetch playlists');
       } finally {
@@ -51,21 +54,24 @@ const Home: React.FC = () => {
   }, []);
 
   // Fetch detailed tracks for a playlist when button is clicked
-  const fetchDetailedTracks = async (detailedPlaylistEndpoint: string) => {
-    setLoading(true);
+  const fetchDetailedTracks = async (event: React.MouseEvent<HTMLButtonElement>, tracksEndpoint: string) => {
+    event.preventDefault(); // Prevent page reload on button click
     setError('');
     try {
-      const response = await axios.get(detailedPlaylistEndpoint, {
+      const response = await axios.get(`http://localhost:8080/playlist/tracks?endpoint=${tracksEndpoint}`, {
         withCredentials: true,
       });
-      console.log('Detailed Tracks:', response);
-      // Here you would handle the detailed tracks response
-      // Maybe you want to add them to the playlist's tracks or display them elsewhere
+      setDetailedTracks(response.data.playlistTracks); // Store tracks in state
+      setShowModal(true); // Show modal with tracks
     } catch (err) {
       setError('Failed to fetch detailed tracks');
-    } finally {
-      setLoading(false);
     }
+  };
+
+  // Close the modal
+  const closeModal = () => {
+    setShowModal(false);
+    setDetailedTracks([]); // Clear tracks when modal is closed
   };
 
   return (
@@ -93,7 +99,6 @@ const Home: React.FC = () => {
                 {expandedPlaylist === playlist.spotifyPlaylistID ? (
                   <div className="expanded-details">
                     <p className="playlist-total-tracks">Total Tracks: {playlist.totalTracks}</p>
-                    <p className="playlist-next">Next: {playlist.next}</p>
                     <a
                       href={playlist.playlistPageURL}
                       target="_blank"
@@ -103,7 +108,7 @@ const Home: React.FC = () => {
                       Open Playlist on Spotify
                     </a>
                     <button
-                      onClick={() => fetchDetailedTracks(playlist.detailedPlaylistEndpoint)}
+                      onClick={(event) => fetchDetailedTracks(event, playlist.tracksEndpoint)}
                       className="fetch-detailed-tracks-button"
                     >
                       Fetch Detailed Tracks
@@ -122,6 +127,26 @@ const Home: React.FC = () => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Modal for detailed tracks */}
+      {showModal && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Track Details</h2>
+            <ul className="track-list">
+              {detailedTracks.map((track, index) => (
+                <li key={index} className="track-item">
+                  <p><strong>{track.title}</strong> by {track.artist}</p>
+                  <p>Popularity: {track.popularity}</p>
+                </li>
+              ))}
+            </ul>
+            <button className="close-modal-button" onClick={closeModal}>
+              Close
+            </button>
+          </div>
         </div>
       )}
     </div>

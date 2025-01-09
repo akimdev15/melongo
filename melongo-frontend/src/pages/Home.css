@@ -83,3 +83,118 @@
 .expand-button:hover {
     background-color: #444;
 }
+
+/* Modal Overlay */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    /* Darker overlay */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+    /* Adding blur to the background */
+}
+
+/* Modal Content */
+.modal-content {
+    background: #121212;
+    /* Dark background for Spotify-like feel */
+    padding: 20px;
+    max-width: 800px;
+    max-height: 85vh;
+    width: 100%;
+    overflow-y: auto;
+    border-radius: 15px;
+    color: #fff;
+    /* White text color */
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+    position: relative;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+/* Close Button */
+.close-modal-button {
+    background-color: #1db954;
+    /* Spotify's green */
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    font-size: 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    transition: background-color 0.3s ease;
+}
+
+.close-modal-button:hover {
+    background-color: #1ed760;
+    /* Slightly lighter green on hover */
+}
+
+/* Track List Styling */
+.track-list {
+    list-style: none;
+    padding: 0;
+    margin-top: 20px;
+    font-size: 16px;
+}
+
+.track-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 10px 0;
+    border-bottom: 1px solid #333;
+    cursor: pointer;
+    transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.track-item:hover {
+    transform: scale(1.02);
+    /* Slight zoom effect */
+    background-color: #282828;
+    /* Dark hover background */
+}
+
+/* Track Image */
+.track-item img {
+    width: 50px;
+    height: 50px;
+    border-radius: 5px;
+    margin-right: 15px;
+}
+
+/* Track Title and Artist */
+.track-info {
+    flex-grow: 1;
+}
+
+.track-title {
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.track-artist {
+    color: #b3b3b3;
+    font-size: 14px;
+}
+
+/* Link for Spotify */
+.track-link {
+    font-size: 14px;
+    color: #1db954;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.track-link:hover {
+    color: #1ed760;
+}
