@@ -1,0 +1,10 @@
+/* Ensure the body has enough top padding to prevent overlap */
+body {
+    padding-top: 60px;
+    /* Match the height of the navbar */
+}
+
+/* Or if you have a wrapper for content */
+.main-content {
+    padding-top: 60px;
+}
