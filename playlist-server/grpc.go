@@ -118,8 +118,8 @@ func (PlaylistServer *PlaylistServer) CreateMelonTop100(ctx context.Context, req
 	}
 
 	songs, err := PlaylistServer.DB.GetTracksByDate(context.Background(), date)
-	if err != nil {
-		slog.Error("[CreateMelonTop100] - Error getting tracks by date", "error", err)
+	if err != nil || len(songs) == 0 {
+		slog.Error("[CreateMelonTop100] - Error getting tracks by date. Need to save top 100 to DB first", "error", err)
 		return nil, fmt.Errorf("error getting tracks by date: %v", err)
 	}
 
