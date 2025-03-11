@@ -1,0 +1,30 @@
+.save-melon-top100-container {
+    text-align: center;
+    padding: 20px;
+}
+
+.page-title {
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+.loading-message,
+.error-message,
+.success-message {
+    font-size: 18px;
+    margin-top: 20px;
+}
+
+.error-message {
+    color: red;
+}
+
+.success-message {
+    color: green;
+}
+
+.save-button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+}

@@ -41,12 +41,21 @@ const Navbar: React.FC = () => {
                 </li>
                 <li className="nav-item">
                     <NavLink
-                        to="/dashboard"
+                        to="/save/top100"
                         className={({ isActive }) => isActive ? "nav-link active-link" : "nav-link"}
                     >
-                        Dashboard
+                        Save Top 100
                     </NavLink>
                 </li>
+                <li className="nav-item">
+                    <NavLink
+                        to="/resolve/missed/tracks"
+                        className={({ isActive }) => isActive ? "nav-link active-link" : "nav-link"}
+                    >
+                        Resolve Missed Tracks
+                    </NavLink>
+                </li>
+
             </ul>
         </nav>
     );

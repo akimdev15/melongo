@@ -414,7 +414,6 @@ func CreateNewPlaylist(name string, description string, isPublic bool, userId st
 
 	if err != nil {
 		slog.Error("Error making the request to the spotify")
-		fmt.Println("Error making the request to the spotify")
 		return NewPlaylistResponse{}, err
 	}
 

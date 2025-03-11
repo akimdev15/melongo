@@ -8,6 +8,8 @@ import Home from "./pages/Home";
 import Navbar from "./components/NavBar";
 import Dashboard from "./components/Dashbooard";
 import './styles/main.css'
+import SaveMelonTop100 from "./components/SaveMelonTop100";
+import MissedTracks from "./components/MissedTracks";
 
 const Main: React.FC = () => {
   return (
@@ -18,6 +20,8 @@ const Main: React.FC = () => {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/createPlaylist" element={<CreatePlaylist />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/save/top100" element={<SaveMelonTop100 />} />
+        <Route path="/resolve/missed/tracks" element={<MissedTracks />} />
       </Routes>
     </div>
   );
