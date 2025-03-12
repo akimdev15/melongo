@@ -50,7 +50,7 @@ func (apiCfg *apiConfig) testNewAlbumsHandler(w http.ResponseWriter, r *http.Req
 	// tracks, err := spotify.SearchTracksFromAlbum("#2024: 가장자리", "Minit", AccessToken)
 
 	if err != nil {
-		slog.Error("Error searching tracks: ", err)
+		slog.Error("Error searching tracks", "error", err)
 		return
 	}
 

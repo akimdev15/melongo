@@ -54,7 +54,7 @@ const Home: React.FC = () => {
   }, []);
 
   // Fetch detailed tracks for a playlist when button is clicked
-  const fetchDetailedTracks = async (event: React.MouseEvent<HTMLButtonElement>, tracksEndpoint: string) => {
+  const fetchDetailedTracks = async (event: React.MouseEvent<HTMLButtonElement>, tracksEndpoint: string, totalTracks: number) => {
     event.preventDefault(); // Prevent page reload on button click
     setError('');
     try {
@@ -88,7 +88,7 @@ const Home: React.FC = () => {
             <div className="playlist-card" key={index}>
               <img
                 className="playlist-image"
-                src={playlist.imageUrl || 'https://via.placeholder.com/150'}
+                src={playlist.imageUrl || '/vite.svg'}
                 alt={playlist.name}
               />
               <div className="playlist-info">
@@ -98,7 +98,7 @@ const Home: React.FC = () => {
                 {expandedPlaylist === playlist.spotifyPlaylistID ? (
                   <div className="expanded-details">
                     <p className="playlist-id">{playlist.spotifyPlaylistID}</p>
-                    <p className="playlist-total-tracks">Total Tracks: {playlist.totalTracks}</p>
+                    <p className="playlist-total-tracks">Total Tracks: {playlist.totalTracks ?? 0}</p>
                     <a
                       href={playlist.playlistPageURL}
                       target="_blank"
@@ -108,8 +108,9 @@ const Home: React.FC = () => {
                       Open Playlist on Spotify
                     </a>
                     <button
-                      onClick={(event) => fetchDetailedTracks(event, playlist.tracksEndpoint)}
+                      onClick={(event) => fetchDetailedTracks(event, playlist.tracksEndpoint, playlist.totalTracks)}
                       className="fetch-detailed-tracks-button"
+                      disabled={!playlist.totalTracks}
                     >
                       Fetch Detailed Tracks
                     </button>
