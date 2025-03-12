@@ -94,10 +94,10 @@ const Home: React.FC = () => {
               <div className="playlist-info">
                 <h3 className="playlist-name">{playlist.name}</h3>
                 <p className="playlist-description">{playlist.description}</p>
-
                 {/* Show more options when playlist is expanded */}
                 {expandedPlaylist === playlist.spotifyPlaylistID ? (
                   <div className="expanded-details">
+                    <p className="playlist-id">{playlist.spotifyPlaylistID}</p>
                     <p className="playlist-total-tracks">Total Tracks: {playlist.totalTracks}</p>
                     <a
                       href={playlist.playlistPageURL}
